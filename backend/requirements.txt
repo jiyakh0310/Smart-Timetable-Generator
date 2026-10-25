@@ -15,4 +15,5 @@ reportlab==5.1.0
 pillow==13.0.0
 charset-normalizer==3.5.2
 et-xmlfile==2.0.0
-gunicorn
+# Production web server (Render start command: gunicorn run:app)
+gunicorn==23.0.0
