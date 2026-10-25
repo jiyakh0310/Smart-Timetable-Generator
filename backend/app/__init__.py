@@ -2,6 +2,7 @@
 from flask import Flask
 from sqlalchemy import text
 
+from app.common import db_diagnostics
 from app.common.errors import register_error_handlers
 from app.common.responses import failure, success
 from app.config import load_config
@@ -30,9 +31,12 @@ def create_app(env: str | None = None) -> Flask:
     def health():
         try:
             db.session.execute(text("SELECT 1"))
-        except Exception:
-            app.logger.exception("Health check: database unreachable")
-            return failure("database_unavailable", "Database is not reachable.", 503)
+        except Exception as exc:
+            # One redacted log line with the cause and what to do; the response carries only a coarse reason code (no host, user or secret).
+            reason = db_diagnostics.classify(exc)
+            app.logger.error("Health check: database unreachable [%s] %s | %s", reason, db_diagnostics.safe_message(exc), db_diagnostics.HINTS[reason])
+            db.session.rollback()
+            return failure("database_unavailable", "Database is not reachable.", 503, {"reason": reason})
         return success({"status": "ok"})
 
     from app.cli import register_cli

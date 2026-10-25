@@ -76,40 +76,87 @@ def _database_url() -> URL:
     )
 
 
+TLS_MODES = ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY")
+
+
+def _url_ssl_mode() -> str | None:
+    explicit = os.getenv("DATABASE_URL")
+    if not explicit:
+        return None
+    for key, value in make_url(explicit).query.items():
+        if key.lower() in SSL_QUERY_KEYS:
+            return str(value)
+    return None
+
+
+def _normalise_mode(raw: str | None, source: str) -> str | None:
+    mode = (raw or "").strip().upper().replace("-", "_")
+    if mode in ("", "DISABLED", "FALSE", "0", "OFF"):
+        return None
+    mode = {"PREFERRED": "REQUIRED", "TRUE": "REQUIRED", "1": "REQUIRED", "ON": "REQUIRED"}.get(mode, mode)
+    if mode not in TLS_MODES:
+        raise RuntimeError(f"{source} must be one of {', '.join(TLS_MODES)} (got an unsupported value).")
+    return mode
+
+
+def _ca_material() -> tuple[str, str | None]:
+    # Some dashboards store a multi-line value with literal "\n" sequences; accept both forms.
+    pem = (os.getenv("DB_SSL_CA_PEM") or "").replace("\\n", "\n").strip()
+    return pem, (os.getenv("DB_SSL_CA") or None)
+
+
 def _tls_requested() -> bool:
     """TLS is switched on by a CA certificate, DB_SSL_MODE, or the ssl-mode parameter of a provider URL."""
-    if os.getenv("DB_SSL_CA_PEM") or os.getenv("DB_SSL_CA") or os.getenv("DB_SSL_MODE"):
-        return True
-    explicit = os.getenv("DATABASE_URL")
+    pem, cafile = _ca_material()
+    return bool(pem or cafile or _normalise_mode(os.getenv("DB_SSL_MODE"), "DB_SSL_MODE") or _normalise_mode(_url_ssl_mode(), "ssl-mode in DATABASE_URL"))
+
+
+def _tls_mode() -> str | None:
+    """The effective TLS mode, or None when TLS is off.
+
+    REQUIRED         encrypted, the server certificate is NOT checked
+    VERIFY_CA        encrypted, the certificate chain is checked against your CA (the host name is not)
+    VERIFY_IDENTITY  encrypted, the chain AND the host name are checked (the default whenever a CA is supplied)
+
+    DB_SSL_MODE wins. A provider's ssl-mode=REQUIRED in DATABASE_URL never downgrades a supplied CA, but ssl-mode=VERIFY_CA / VERIFY_IDENTITY is honoured.
+    """
+    pem, cafile = _ca_material()
+    have_ca = bool(pem or cafile)
+    explicit = _normalise_mode(os.getenv("DB_SSL_MODE"), "DB_SSL_MODE")
+    from_url = _normalise_mode(_url_ssl_mode(), "ssl-mode in DATABASE_URL")
     if explicit:
-        query = make_url(explicit).query
-        return any(k.lower() in SSL_QUERY_KEYS and str(v).lower() not in ("", "disabled", "false", "0") for k, v in query.items())
-    return False
+        mode = explicit
+    elif from_url in ("VERIFY_CA", "VERIFY_IDENTITY"):
+        mode = from_url
+    elif have_ca:
+        mode = "VERIFY_IDENTITY"
+    else:
+        mode = from_url
+    if mode in ("VERIFY_CA", "VERIFY_IDENTITY") and not have_ca:
+        raise RuntimeError(f"TLS mode {mode} needs the provider's CA certificate: set DB_SSL_CA_PEM (the certificate text) or DB_SSL_CA (a file path).")
+    return mode
 
 
 def _ssl_context() -> ssl.SSLContext | None:
     """TLS settings for the MySQL connection (read from environment variables only).
 
-    DB_SSL_CA_PEM  the CA certificate text (Aiven: the "CA certificate" shown in the service overview)  -> encrypted AND verified
-    DB_SSL_CA      path to a CA certificate file (e.g. a Render Secret File)                          -> encrypted AND verified
-    DB_SSL_MODE    REQUIRED (or ssl-mode=REQUIRED in DATABASE_URL) with no CA                        -> encrypted, server NOT verified
-
-    With a CA the certificate chain and the host name are both checked.
+    DB_SSL_CA_PEM  the CA certificate text (Aiven: the "CA certificate" in the service overview)
+    DB_SSL_CA      or a path to that certificate file (e.g. a Render Secret File)
+    DB_SSL_MODE    REQUIRED | VERIFY_CA | VERIFY_IDENTITY - see `_tls_mode`
     """
-    if not _tls_requested():
+    mode = _tls_mode()
+    if mode is None:
         return None
-    # Some dashboards store a multi-line value with literal "\n" sequences; accept both forms.
-    pem = (os.getenv("DB_SSL_CA_PEM") or "").replace("\\n", "\n").strip()
-    cafile = os.getenv("DB_SSL_CA") or None
-    if pem or cafile:
-        ctx = ssl.create_default_context(cafile=cafile, cadata=pem or None)
-        ctx.check_hostname = True
-        ctx.verify_mode = ssl.CERT_REQUIRED
-        ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT  # Python 3.13 tightened this; provider CAs often fail the strict profile
+    if mode == "REQUIRED":
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
         return ctx
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    pem, cafile = _ca_material()
+    ctx = ssl.create_default_context(cafile=cafile, cadata=pem or None)
+    ctx.check_hostname = mode == "VERIFY_IDENTITY"
+    ctx.verify_mode = ssl.CERT_REQUIRED
+    ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT  # Python 3.13 tightened this; provider CAs often fail the strict profile
     return ctx
 
 
