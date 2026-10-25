@@ -344,9 +344,10 @@ class TestNeverApprovesOrPublishes:
         assert client.delete(f"{URL}/{tt}", headers=admin_headers).status_code == 200
         assert counts() == EMPTY
 
-    def test_there_is_no_publish_or_approve_endpoint_here(self, client, admin_headers, tt):
-        for action in ("publish", "approve", "submit"):
-            assert client.post(f"{URL}/{tt}/{action}", headers=admin_headers).status_code in (404, 405)
+    def test_validating_alone_never_moves_a_timetable_past_validated(self, client, admin_headers, tt):
+        for _ in range(3):
+            client.post(f"{URL}/{tt}/validate", headers=admin_headers)
+        assert refresh(tt).status == TimetableStatus.VALIDATED  # approval and publication are separate R16 actions
 
 
 class TestPermissions:

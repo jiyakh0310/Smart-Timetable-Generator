@@ -4,7 +4,7 @@ Web application that generates conflict-free timetables and allocates classrooms
 **Stack:** React + Vite · Python Flask · MySQL · SQLAlchemy + Alembic migrations.
 **Roles:** Admin, Faculty, Student (no Department Head role - see `docs/requirements-mapping.md`).
 
-## Current status: M1 + UI redesign + Time slots (R6) + Subjects (R4) + Batches & Students (R3) + Faculty (R2) & availability (R13) + Teaching assignments + Rooms & labs (R5) with clash/allocation checks (R8, R9) + Timetable generation (R7) + Timetable validation (R10)
+## Current status: M1 + UI redesign (top navigation, no-scroll responsive tables) + Time slots (R6) + Subjects (R4) + Batches & Students (R3) + Faculty (R2) & availability (R13) + Teaching assignments + Rooms & labs (R5) with clash/allocation checks (R8, R9) + Timetable generation (R7) + Timetable validation (R10) + Faculty workload limits (R14) + Manual timetable editing (R15) + Approval and publishing (R16) + Faculty / student published timetable views (R11, R12) + PDF / Excel export (R18)
 
 | Done in M1 | Not built yet |
 |---|---|

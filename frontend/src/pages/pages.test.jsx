@@ -76,13 +76,14 @@ describe('Admin dashboard', () => {
 });
 
 describe('Faculty dashboard', () => {
-  it('shows the real faculty profile and marks timetable/availability as not available yet', () => {
+  it('shows the real faculty profile and links to the timetable and marks availability as not available yet', () => {
     user = faculty;
     renderPage(<FacultyDashboard />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Dr\. Rakesh/);
     expect(screen.getByText('F001')).toBeInTheDocument();
     expect(screen.getByText('18 h')).toBeInTheDocument();
-    expect(screen.getAllByText(/Not available yet/).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole('link', { name: 'Open my timetable' })).toHaveAttribute('href', '/faculty/timetable');
+    expect(screen.getAllByText(/Not available yet/).length).toBeGreaterThanOrEqual(1);
     noConsoleErrors();
   });
 
@@ -101,7 +102,8 @@ describe('Student dashboard', () => {
     expect(screen.getAllByText('CSE Sem 3 - A').length).toBeGreaterThan(0);
     expect(screen.getByText('CSE23001')).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    expect(screen.getAllByText(/Not available yet/).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole('link', { name: 'Open my timetable' })).toHaveAttribute('href', '/student/timetable');
+    expect(screen.getAllByText(/Not available yet/).length).toBeGreaterThanOrEqual(1);
     noConsoleErrors();
   });
 });

@@ -79,7 +79,7 @@ MySQL 8, accessed through SQLAlchemy; schema is created only by Alembic migratio
 - The only reference to a room is `timetable_entries.room_id` (no cascade). While entries reference a room it cannot be deleted, its type is locked and its capacity cannot fall below the largest batch scheduled in it. Taking it out of service stays possible and is reported by validation.
 - **Overlap is decided from times, not slot ids.** The unique keys on `timetable_entries` (timetable + faculty/batch/room + slot) only catch the *same slot row*. The Time Slots module prevents overlapping slots from being created, but the clash service still compares `[start, end)` intervals so misconfigured or legacy slot data cannot hide a clash. Touching intervals are not overlaps.
 - **Hard vs soft:** `faculty_availability.status = unavailable` is a hard conflict; `preferred` can only produce the advisory `outside_preferred_slots` and never blocks a placement.
-- **Not checked by the clash service (on purpose):** workload limits (R14) and timetable completeness (R10).
+- **Not checked by the clash service (on purpose):** workload limits (R14, `isha/workload_service.py`) and timetable completeness (R10, `jiya/validation_service.py`).
 - The room type rule: lab subject -> laboratory; theory subject -> never a laboratory and, when the subject names a `required_room_type`, exactly that type.
 
 ## Timetable generation rules added in R7 (application level, no schema change, no migration)
@@ -92,3 +92,26 @@ MySQL 8, accessed through SQLAlchemy; schema is created only by Alembic migratio
 - Uses the existing `timetables.validation_passed` and `validated_at`. `validation_passed` is true only when the last validation found no hard error and the timetable was complete; it is a snapshot (the setup data a timetable depends on can still change afterwards, so re-validate before relying on it).
 - Required sessions are `teaching_assignments.sessions_per_week` for the timetable's term, read at validation time. Scheduled sessions are entry rows per assignment divided by the session length (1 for theory, `lab_block_periods` for a lab).
 - Status movement made by validation: `draft` -> `validated` on a pass, `validated` -> `draft` on a failure; nothing else.
+
+## Workload rules added in R14 (application level, no schema change, no migration)
+- `faculty.max_weekly_hours` (SmallInteger, NOT NULL, default 18, `> 0`) is the weekly maximum in hours. Workload is derived, never stored: the sum of `time_slots.end_time - start_time` over a faculty member's `timetable_entries` (a lab is one entry per period, so it counts every period).
+- Generation: a session is only placed if the faculty member's running total plus the window's real duration stays within the maximum (hard). Soft scoring adds a small penalty (2 per period) for each period the faculty member already teaches that day, which spreads a person's week; it is lower than the preferred-period penalty (10) and the same-subject-day penalty (6) and can never outweigh a hard rule.
+- Sessions are placed most-constrained first, so when a limit forces sessions out, which of a person's sessions remain unscheduled follows that order (deterministic) rather than a priority chosen by the admin.
+
+## Manual editing rules added in R15 (application level, no schema change, no migration)
+- Editing replaces the rows of the moved session (delete + insert) in one transaction, so `timetable_entries.id` changes for a moved session; `timetables.version`, `status` rules and `unscheduled_items` are otherwise untouched. The three unique keys stay as a backstop for identical slots only; overlap between different slot records is prevented by the check under the timetable row lock.
+- Editable statuses: `draft`, `validated`. All later statuses are immutable. After an edit `validation_passed` / `validated_at` always describe the new contents.
+
+## Approval workflow rules added in R16 (application level, no schema change, no migration)
+- Uses the existing `timetables.status` (all seven values are now reachable), `approved_by`, `approved_at`, `rejection_reason` and `published_at`. Transitions are defined once in `timetable_service.TRANSITIONS`.
+- The "at most one published timetable per term" rule is enforced by the publish transaction (term row lock, then timetable row lock), not by a database constraint, because MySQL has no partial unique index. Direct SQL that sets two rows to `published` would bypass it; nothing in the application does.
+- Archived and published rows are never deleted by the application; while any timetable references them, assignments, rooms, subjects, batches, faculty and time slots stay protected by the existing in-use guards.
+- MySQL's default REPEATABLE READ means a plain read before a lock would keep a stale snapshot. Every locking workflow (generate, validate, edit, submit / approve / reject / publish) therefore ends the read snapshot first, so the first statement of its transaction is the locking read.
+
+## Published views added in R11 / R12 (read-only, no schema change, no migration)
+- Identity: `faculty.user_id` (unique, NOT NULL) and `students.user_id` (unique, nullable). A student's visible timetable is `timetable_entries.batch_id = students.batch_id`; a teacher's is `timetable_entries.faculty_id = faculty.id`. Both filters are applied inside the single query for the current published timetable of the term.
+- "Current" means `timetables.status = 'published'` for the term (R16 keeps it unique); archived rows are never selected. If data were ever corrupted so that two rows were published, the view picks the latest `published_at` (then highest version) instead of mixing them.
+
+## Export rules added in R18 (read-only, no schema change, no migration)
+- Exports read existing tables only. Faculty and student documents reuse the R11 / R12 query (one current `published` timetable per term, filtered by `faculty_id` or `batch_id`); the admin document reads `timetable_entries` and `unscheduled_items` of the timetable named in the URL.
+- Nothing is stored: files are generated per request and not kept on the server.

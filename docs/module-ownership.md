@@ -54,3 +54,27 @@ Modules call each other through documented service functions (`api-contracts.md`
 - **Backend:** `jiya/validation_service.py` (`POST /api/v1/timetables/:id/validate`). It calls `clash_service.validate_timetable` for every hard rule and adds the completeness check; no rule is duplicated.
 - **Frontend:** `features/jiya/ValidationResult.jsx` and a Validate action in `TimetableDetail.jsx`; the list shows the recorded validation state.
 - Still planned for Jiya: approval and publishing (R16, R11), manual editing (R15), exports (R18), notifications.
+
+## Isha - R14 delivered
+- **Backend:** `isha/workload_service.py` is the single place that measures teaching duration and compares it with `faculty.max_weekly_hours`. The generator (`jiya/generator.py`), the validator (`jiya/validation_service.py`) and the timetable detail all call it; the clash service is unchanged.
+- **Frontend:** `features/jiya/WorkloadTable.jsx`, shown in the generation summary and the timetable detail, plus a pre-generation warning in the Generate dialog.
+- Still planned for Isha: R19 announcements, faculty self-service availability.
+
+## Jiya - R15 delivered
+- **Backend:** `jiya/edit_service.py` (`PATCH /api/v1/timetables/:id/entries/:entry_id` and `GET .../edit-options`). It reuses `check_session`, `rank_rooms`, `workload_service` and `validation_service.evaluate`; no rule is duplicated.
+- **Frontend:** `features/jiya/EditEntryDialog.jsx`; the weekly grid in `TimetableDetail.jsx` becomes clickable for editable timetables (`WeeklyTimetable` gained an optional `onEntryClick`).
+- Still planned for Jiya: approval and publishing (R16, R11), exports (R18), notifications.
+
+## Jiya - R16 delivered
+- **Backend:** `jiya/approval_service.py` (`POST /api/v1/timetables/:id/submit|approve|reject|publish`). `TRANSITIONS` in `timetable_service.py` is the single source of truth for the allowed moves. Validation is `validation_service.evaluate`; no rule is duplicated.
+- **Frontend:** `features/jiya/ReviewPanel.jsx` (workflow steps, confirmations, reject dialog) inside the timetable detail; a "Current" badge in the list; `TextAreaField` added to the design system.
+- There is no separate reviewer: the system has exactly three roles, so the Admin reviews, approves and publishes (approved scope decision). Still planned for Jiya: exports (R18), notifications; R12/R11 viewing for students and faculty.
+
+## Faculty and student views (R11 / R12) delivered
+- **Backend:** `jiya/published_service.py` and `published_routes.py` (`GET /api/v1/faculty/timetable`, `GET /api/v1/student/timetable`). R12 belongs to Diya and the faculty view to Jiya; both share one small read-only service so the visibility rules live in one place.
+- **Frontend:** `features/jiya/MyTimetablePage.jsx` (used by `/faculty/timetable` and `/student/timetable`), `published.js`; the two dashboards link to it.
+
+## Export (R18) delivered
+- **Backend:** `jiya/export_service.py` (what may be exported, and the Document), `jiya/export_render.py` (PDF with reportlab, Excel with openpyxl), routes added to `timetable_routes.py` (Admin) and `published_routes.py` (Faculty, Student).
+- **Frontend:** `features/jiya/ExportButtons.jsx`, `services/download.js` and `api.download` (an authenticated file download; a plain link cannot send the bearer token).
+- Dependencies added: `openpyxl`, `reportlab` (and their transitive `pillow`, `charset-normalizer`, `et-xmlfile`), pinned in `requirements.txt`. Still planned: notifications, restore/compare (R17).

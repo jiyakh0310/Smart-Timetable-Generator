@@ -1,7 +1,7 @@
 import { useAuth } from '../../app/AuthContext.jsx';
 import DashboardHero from '../../components/DashboardHero.jsx';
 import FeaturePending from '../../components/FeaturePending.jsx';
-import { Notice, StatCard } from '../../components/ui';
+import { ButtonLink, Card, EmptyState, Notice, StatCard } from '../../components/ui';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -11,7 +11,7 @@ export default function StudentDashboard() {
     <>
       <DashboardHero
         name={user.full_name}
-        subtitle="Your batch's published timetable will appear here. You have read-only access."
+        subtitle="Your batch's published timetable. You have read-only access."
         chips={s ? [s.batch] : ['Student']}
       />
       {!s && <Notice tone="warning">Your account is not linked to a student record yet. Please contact the administrator.</Notice>}
@@ -24,9 +24,11 @@ export default function StudentDashboard() {
         </div>
       )}
       <div className="grid-main-side">
-        <FeaturePending title="This week's timetable" icon="calendar" req="R12" milestone="M6">
-          Your batch timetable (daily and weekly views, with print and download) appears here once the administrator publishes it.
-        </FeaturePending>
+        <Card title="My timetable">
+          <EmptyState title="Your batch's published timetable" icon="calendar" action={<ButtonLink variant="primary" to="/student/timetable">Open my timetable</ButtonLink>}>
+            See your classes, teachers and rooms for the week once the administrator has published the timetable.
+          </EmptyState>
+        </Card>
         <FeaturePending title="Announcements" icon="bell" req="R19" milestone="M9">
           Timetable and classroom changes will be posted here.
         </FeaturePending>

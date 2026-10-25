@@ -252,4 +252,4 @@ def _blocked_reason(a, sess, blocked_by) -> UnplacedSession:
 def _workload_reason(a, session_no, used, limit, needed) -> UnplacedSession:
     h = workload.hours
     return UnplacedSession(a.id, session_no, "workload_limit",
-                           f"{_label(a)} would take {a.faculty.user.full_name} to {h(used + needed):g} h per week, over the maximum of {h(limit):g} h ({h(used):g} h are already scheduled).")
+                           f"{a.subject.code} for {a.batch.name} would take {a.faculty.user.full_name} to {h(used + needed):g} h per week, over the maximum of {h(limit):g} h ({h(used):g} h are already scheduled).")

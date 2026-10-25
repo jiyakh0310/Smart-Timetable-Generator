@@ -131,3 +131,26 @@ def overload_conflicts(timetable) -> list[Conflict]:
                                 f"{r['name']} is scheduled for {r['scheduled_hours']:g} h per week but the maximum is {r['max_hours']:g} h ({r['overload_hours']:g} h over).",
                                 {"faculty_id": r["faculty_id"], "scheduled_hours": r["scheduled_hours"], "max_hours": r["max_hours"], "overload_hours": r["overload_hours"]}))
     return out
+
+
+def edit_overload(faculty: Faculty, timetable_id: int, ignore_entries, new_slots) -> Conflict | None:
+    """Would moving a session leave this faculty member above their weekly maximum? `ignore_entries` are the session's old rows."""
+    limit = limit_minutes(faculty)
+    if limit is None:
+        return None
+    old = {e.id for e in ignore_entries}
+    kept = sum(m for m in _entry_minutes(timetable_id, faculty.id, old))
+    total = kept + sum(slot_minutes(s) for s in new_slots)
+    if total <= limit:
+        return None
+    return Conflict("workload_exceeded", HARD,
+                    f"{faculty.user.full_name} would be scheduled for {hours(total):g} h per week but the maximum is {hours(limit):g} h ({hours(total - limit):g} h over).",
+                    {"faculty_id": faculty.id, "scheduled_hours": hours(total), "max_hours": hours(limit), "overload_hours": hours(total - limit)})
+
+
+def _entry_minutes(timetable_id: int, faculty_id: int, skip_ids: set):
+    rows = db.session.execute(
+        db.select(TimetableEntry.id, TimeSlot.start_time, TimeSlot.end_time).join(TimeSlot, TimeSlot.id == TimetableEntry.time_slot_id)
+        .where(TimetableEntry.timetable_id == timetable_id, TimetableEntry.faculty_id == faculty_id)
+    )
+    return [(end.hour * 60 + end.minute) - (start.hour * 60 + start.minute) for eid, start, end in rows if eid not in skip_ids]

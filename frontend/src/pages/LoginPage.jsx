@@ -20,6 +20,8 @@ export default function LoginPage() {
   return (
     <div className="login">
       <section className="login-hero" aria-label="About the system">
+        <span className="login-shape s1" aria-hidden="true" />
+        <span className="login-shape s2" aria-hidden="true" />
         <span className="brand-mark"><Icon name="calendar" size={22} /></span>
         <h1>Smart Timetable Management</h1>
         <p>Conflict-free timetables and automated classroom allocation for the whole institution.</p>
@@ -30,9 +32,10 @@ export default function LoginPage() {
       </section>
       <main className="login-panel" id="main">
         <div className="login-card card">
-          <h2>Sign in</h2>
-          <p className="lead">Administrators, faculty and students sign in with their institution email.</p>
+          <h2>Welcome back</h2>
+          <p className="lead">Sign in with your institution email to see your timetable.</p>
           <LoginForm />
+          <p className="login-foot">Need access? Please contact your administrator.</p>
         </div>
       </main>
     </div>

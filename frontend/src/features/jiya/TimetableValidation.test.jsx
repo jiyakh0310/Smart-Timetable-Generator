@@ -12,7 +12,7 @@ vi.mock('../../services/api.js', () => ({ api: { get: (...a) => api.get(...a), p
 const TERM = { id: 1, name: 'Autumn 2026', academic_year: '2026-27' };
 const timetable = (over = {}) => ({
   id: 1, term: TERM, name: 'Autumn 2026 timetable v1', version: 1, status: 'draft', validation_passed: false, validated_at: null,
-  generated_at: '2026-10-01T10:00:00', periods: 36, unscheduled_sessions: 0, can_discard: true, ...over,
+  generated_at: '2026-10-01T10:00:00', periods: 36, unscheduled_sessions: 0, can_discard: true, can_edit: true, ...over,
 });
 const listOf = (items) => ({ items, page: 1, per_page: 10, total: items.length, pages: 1 });
 const BATCH = { id: 1, name: 'CSE Sem 3 - A' };
@@ -194,10 +194,10 @@ describe('Validation - loading and errors', () => {
     expect(screen.getByRole('button', { name: /Discard/ })).toBeInTheDocument();
   });
 
-  it('an approved timetable shows no discard but can still be validated', async () => {
-    current = detail({ status: 'approved', can_discard: false, validated_at: 'x', validation_passed: true });
+  it('an approved timetable offers neither Validate nor Discard (the workflow re-validates it itself)', async () => {
+    current = detail({ status: 'approved', can_discard: false, can_edit: false, validated_at: 'x', validation_passed: true });
     await openDetail();
     expect(screen.queryByRole('button', { name: /Discard/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Validate/ })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /Validate/ })).not.toBeInTheDocument();
   });
 });

@@ -35,7 +35,7 @@ export const NAV = {
   ],
   faculty: [
     { path: '', label: 'Dashboard', icon: 'grid', group: 'Overview', done: true },
-    { path: 'timetable', label: 'My Timetable', icon: 'calendar', group: 'Teaching', owner: 'Jiya', req: 'R11', priority: 'Must', milestone: 'M6',
+    { path: 'timetable', label: 'My Timetable', icon: 'calendar', group: 'Teaching', owner: 'Jiya', req: 'R11', priority: 'Must', milestone: 'M6', done: true,
       blurb: 'Your published teaching schedule: subjects, batches and classrooms.' },
     { path: 'availability', label: 'Availability', icon: 'clock', group: 'Teaching', owner: 'Isha', req: 'R13', priority: 'Should', milestone: 'M8',
       blurb: 'Set your own available and preferred time slots (for now the administrator manages this).' },
@@ -47,7 +47,7 @@ export const NAV = {
   ],
   student: [
     { path: '', label: 'Dashboard', icon: 'grid', group: 'Overview', done: true },
-    { path: 'timetable', label: 'My Timetable', icon: 'calendar', group: 'Timetable', owner: 'Diya', req: 'R12', priority: 'Must', milestone: 'M6',
+    { path: 'timetable', label: 'My Timetable', icon: 'calendar', group: 'Timetable', owner: 'Diya', req: 'R12', priority: 'Must', milestone: 'M6', done: true,
       blurb: 'The published timetable for your batch (read-only).' },
     { path: 'announcements', label: 'Announcements', icon: 'bell', group: 'Communication', owner: 'Isha', req: 'R19', priority: 'Could', milestone: 'M9',
       blurb: 'Timetable changes and academic announcements.' },

@@ -79,34 +79,27 @@ def _completeness(timetable: Timetable) -> dict:
     return {"required": required, "scheduled": scheduled, "unscheduled": unscheduled, "problems": problems, "warnings": warnings}
 
 
-def validate(timetable_id: int) -> dict:
-    """Validate and record the result. Reads current database state only; nothing from the client is trusted."""
-    try:
-        db.session.execute(db.select(Timetable.id).where(Timetable.id == timetable_id).with_for_update())  # one validation of a timetable at a time
-        timetable = get_or_404(timetable_id)
-        report = clash.validate_timetable(timetable.id)
-        completeness = _completeness(timetable)
-        periods = db.session.scalar(db.select(db.func.count()).select_from(TimetableEntry).where(TimetableEntry.timetable_id == timetable.id))
+def evaluate(timetable: Timetable) -> dict:
+    """Judge the saved rows and record the outcome on the timetable (flag, timestamp, draft <-> validated). The caller owns the transaction."""
+    report = clash.validate_timetable(timetable.id)
+    completeness = _completeness(timetable)
+    periods = db.session.scalar(db.select(db.func.count()).select_from(TimetableEntry).where(TimetableEntry.timetable_id == timetable.id))
 
-        hard = [c.to_dict() for c in report.hard] + completeness["problems"] + [c.to_dict() for c in workload_service.overload_conflicts(timetable)]
-        warnings = [c.to_dict() for c in report.advisory] + completeness["warnings"]
-        unscheduled = completeness["unscheduled"]
-        is_complete = not unscheduled and completeness["scheduled"] == completeness["required"] and completeness["required"] > 0
-        passed = not hard and is_complete
+    hard = [c.to_dict() for c in report.hard] + completeness["problems"] + [c.to_dict() for c in workload_service.overload_conflicts(timetable)]
+    warnings = [c.to_dict() for c in report.advisory] + completeness["warnings"]
+    unscheduled = completeness["unscheduled"]
+    is_complete = not unscheduled and completeness["scheduled"] == completeness["required"] and completeness["required"] > 0
+    passed = not hard and is_complete
 
-        timetable.validation_passed = passed
-        timetable.validated_at = datetime.now(timezone.utc).replace(tzinfo=None)
-        if passed and timetable.status == TimetableStatus.DRAFT:
-            timetable.status = TimetableStatus.VALIDATED
-        elif not passed and timetable.status == TimetableStatus.VALIDATED:
-            timetable.status = TimetableStatus.DRAFT
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        raise
+    timetable.validation_passed = passed
+    timetable.validated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    if passed and timetable.status == TimetableStatus.DRAFT:
+        timetable.status = TimetableStatus.VALIDATED
+    elif not passed and timetable.status == TimetableStatus.VALIDATED:
+        timetable.status = TimetableStatus.DRAFT
 
     return {
-        "timetable_id": timetable_id,
+        "timetable_id": timetable.id,
         "status": timetable.status.value,
         "validation_passed": passed,
         "is_valid": not hard,
@@ -124,3 +117,16 @@ def validate(timetable_id: int) -> dict:
         "warnings": warnings,
         "unscheduled": unscheduled,
     }
+
+
+def validate(timetable_id: int) -> dict:
+    """Validate and record the result. Reads current database state only; nothing from the client is trusted."""
+    try:
+        db.session.commit()  # end the read snapshot taken by the permission check so the data read after the lock is current (MySQL repeatable read)
+        db.session.execute(db.select(Timetable.id).where(Timetable.id == timetable_id).with_for_update())  # one validation of a timetable at a time
+        result = evaluate(get_or_404(timetable_id))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+    return result

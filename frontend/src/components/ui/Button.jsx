@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 const cls = (variant, size, block, extra) =>
   `btn btn-${variant}${size === 'sm' ? ' btn-sm' : ''}${block ? ' btn-block' : ''}${extra ? ` ${extra}` : ''}`;
 
-// variant: primary | secondary | ghost | danger     size: md | sm
+// variant: primary (main action) | secondary (supporting) | ghost (low emphasis) | danger (destructive) | success (publish)     size: md | sm
 export function Button({ variant = 'primary', size = 'md', block = false, loading = false, children, disabled, type = 'button', className, ...rest }) {
   return (
     <button type={type} className={cls(variant, size, block, className)} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>

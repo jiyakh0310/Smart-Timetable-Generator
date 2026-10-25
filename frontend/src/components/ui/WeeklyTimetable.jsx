@@ -7,12 +7,13 @@ import Icon from './Icon.jsx';
  *   days:    [{ key: 0..6 (Mon=0), label: 'Mon', name: 'Monday' }]
  *   periods: [{ key, start: '09:00', end: '10:00', kind: 'class' | 'break' }]
  *   entries: [{ id, dayKey, periodKey, span?: 1, title, lines?: string[], kind?: 'theory' | 'lab' }]
+ *   onEntryClick?: (entry) => void   when given, each class is a button (keyboard and screen-reader friendly)
  *
  * Wide screens: week grid (or day list via the toggle). Phones: always the day list.
  */
 const todayKey = () => (new Date().getDay() + 6) % 7; // JS: Sun=0 -> our Mon=0
 
-export default function WeeklyTimetable({ days, periods, entries, emptyHint = 'No classes scheduled.' }) {
+export default function WeeklyTimetable({ days, periods, entries, emptyHint = 'No classes scheduled.', onEntryClick }) {
   const today = todayKey();
   const [mode, setMode] = useState('week');
   const [dayKey, setDayKey] = useState(days.some((d) => d.key === today) ? today : days[0]?.key);
@@ -34,13 +35,23 @@ export default function WeeklyTimetable({ days, periods, entries, emptyHint = 'N
     </>
   );
 
-  const entryCard = (e) => (
-    <div className={`tt-entry${e.kind === 'lab' ? ' is-lab' : ''}`}>
-      {e.kind && <span className="tt-kind">{e.kind === 'lab' ? 'Lab' : 'Theory'}</span>}
-      <strong>{e.title}</strong>
-      {(e.lines || []).map((line) => <span key={line}>{line}</span>)}
-    </div>
-  );
+  const entryCard = (e) => {
+    const card = (
+      <div className={`tt-entry${e.kind === 'lab' ? ' is-lab' : ''}`}>
+        {e.kind && <span className="tt-kind">{e.kind === 'lab' ? 'Lab' : 'Theory'}</span>}
+        <strong>{e.title}</strong>
+        {(e.lines || []).map((line) => <span key={line}>{line}</span>)}
+      </div>
+    );
+    if (!onEntryClick) return card;
+    const day = days.find((d) => d.key === e.dayKey)?.name ?? '';
+    const start = periods.find((p) => p.key === e.periodKey)?.start ?? '';
+    return (
+      <button type="button" className="tt-entry-btn" onClick={() => onEntryClick(e)} aria-label={`Move ${e.title}, ${day} ${start}`}>
+        {card}
+      </button>
+    );
+  };
 
   const dayIndex = days.findIndex((d) => d.key === dayKey);
   const step = (delta) => setDayKey(days[(dayIndex + delta + days.length) % days.length].key);
@@ -58,7 +69,7 @@ export default function WeeklyTimetable({ days, periods, entries, emptyHint = 'N
               aria-selected={d.key === dayKey}
               onClick={() => { setDayKey(d.key); setMode('day'); }}
             >
-              {d.label}{d.key === today ? ' · Today' : ''}
+              <span>{d.label}</span>{d.key === today && <small>Today</small>}
             </button>
           ))}
         </div>

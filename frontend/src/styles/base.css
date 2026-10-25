@@ -1,5 +1,6 @@
 *, *::before, *::after { box-sizing: border-box; }
-html, body, #root { height: 100%; }
+html { -webkit-text-size-adjust: 100%; }
+html, body, #root { min-height: 100%; }
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -9,9 +10,19 @@ body {
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden; /* a safety net only: no screen is designed to need horizontal page scrolling */
 }
-h1, h2, h3, h4 { margin: 0; font-weight: 650; letter-spacing: -0.01em; color: var(--text); }
-h1 { font-size: var(--text-2xl); line-height: 1.25; }
+/* A very quiet abstract wash behind everything (fixed, so it never affects layout or scrolling). */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(820px 460px at 88% -8%, rgba(99, 88, 240, 0.11), transparent 62%),
+    radial-gradient(640px 420px at -6% 4%, rgba(167, 139, 250, 0.12), transparent 58%),
+    radial-gradient(700px 500px at 60% 112%, rgba(99, 88, 240, 0.07), transparent 60%);
+}
+h1, h2, h3, h4 { margin: 0; font-weight: 680; letter-spacing: -0.015em; color: var(--text); }
+h1 { font-size: var(--text-2xl); line-height: 1.2; }
 h2 { font-size: var(--text-lg); line-height: 1.3; }
 h3 { font-size: var(--text-base); }
 p { margin: 0; }
@@ -19,13 +30,22 @@ a { color: var(--primary); text-underline-offset: 2px; }
 a:hover { color: var(--primary-hover); }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
+img { max-width: 100%; }
 :focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--r-sm); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skip-link { position: absolute; left: -999px; top: 8px; background: var(--primary); color: #fff; padding: 8px 14px; border-radius: var(--r-md); z-index: 200; }
 .skip-link:focus { left: 8px; }
 .text-muted { color: var(--text-3); }
 .nowrap { white-space: nowrap; }
+body.has-drawer { overflow: hidden; }
 
+@media (max-width: 480px) {
+  :root { --page-pad: 16px; --topbar-h: 60px; }
+  h1 { font-size: var(--text-xl); }
+}
+@media (max-width: 1100px) and (min-width: 481px) {
+  :root { --page-pad: 24px; }
+}
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

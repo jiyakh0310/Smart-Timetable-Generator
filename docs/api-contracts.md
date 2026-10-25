@@ -181,14 +181,95 @@ Report (`data`): `{timetable_id, status, validation_passed, is_valid, is_complet
 **What validation changes.** Only `validation_passed`, `validated_at` and, for the two statuses below, `status`: a passing `draft` becomes `validated`; a failing `validated` goes back to `draft`. Approved, published, pending, rejected and archived timetables keep their status (only the flag and timestamp are updated). It never edits entries or unscheduled items and cannot approve or publish.
 **Discard rule change.** `DELETE /timetables/:id` now accepts `draft` and `validated` (a validated timetable is still just a draft that passed), so a passing validation does not lock the setup data.
 
+### R14: Faculty workload limits (Isha rules, used by Jiya's endpoints) - Admin only
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/timetables/workload-preview?term_id=N` | read-only; `{term_id, workload: [row], warnings: [text]}`; 400 without/invalid `term_id` |
+
+`row`: `{faculty_id, employee_code, name, max_hours, assigned_hours, scheduled_hours, overload_hours, over_assigned_hours, status}` (hours; `max_hours` is `null` when no limit is configured). `status`: `ok`, `at_limit` (scheduled exactly the maximum), `over_assigned` (the assignments need more than the maximum and nothing is scheduled yet), `over_limit` (a saved timetable exceeds the maximum - hard), `no_limit`.
+Also added: `POST /timetables/generate` -> `generation.workload` (rows after scheduling) and workload warnings in `generation.warnings`; `GET /timetables/:id` -> `workload` (rows from the saved entries); new unscheduled reason code `workload_limit`; `POST /timetables/:id/validate` -> hard error `workload_exceeded` (`details: {faculty_id, scheduled_hours, max_hours, overload_hours}`).
+
+**Calculation.** Workload = the sum of the real durations (`end - start`) of a faculty member's saved timetable entries, in hours. A 2-period lab therefore counts both periods; 45-minute periods count 0.75 h each. The limit is `faculty.max_weekly_hours` (hours per week, hard). Assigned hours before scheduling are a LOWER BOUND (sessions x session length x the shortest active class period) so a warning is never a false alarm.
+**Before generation.** Over-assignments are never silent: the Generate dialog shows the preview warnings, and the generation summary repeats them. Generation is not blocked: it schedules up to the limit and records every session that does not fit as `workload_limit` with the hours involved.
+**Missing limits.** The column is NOT NULL (default 18, `> 0`), and the faculty form already defaults a blank value to 18. If a limit were ever missing or not a positive whole number it means "no limit": nothing is enforced, no default is invented, and the summary says so (`no_limit`).
+
+### Milestone 8: Manual editing (R15, Jiya) - Admin only
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/timetables/:id/entries/:entry_id/edit-options` | eligible positions for the session containing that entry: `{entry_id, entry_ids, periods, subject, batch, faculty, current: {time_slot_id, room_id}, options: [{time_slot_id (start), day_name, period_no, start_time, end_time, is_current, rooms: [{id, code, name, capacity, room_type, is_current}]}]}`; rooms are suitable and smallest first. A convenience for the UI only |
+| PATCH | `/timetables/:id/entries/:entry_id` | body `{time_slot_id?, room_id?}` (at least one; nothing else is accepted); returns `{timetable (the full detail), edited_entry_ids, warnings, validation (the R10 report)}` |
+
+Errors: 400 `validation_error` (empty body, unknown or non-numeric ids, any other field such as `assignment_id`, `faculty_id`, `batch_id`, `status`), 404 (unknown timetable, or an entry that is not part of it), 409 `timetable_not_editable` (anything other than `draft` / `validated`), 409 `no_change`, 409 `session_malformed` (a lab that does not have all its periods saved), 409 `edit_conflict` with `details.conflicts: [{code, severity, message, details}]`, 401/403.
+
+**Unit of editing.** One session: a theory class (one entry) or a whole lab session (`lab_block_periods` consecutive entries, moved as one block). `time_slot_id` is the START period; a lab's other periods follow on the same day. Assignment, faculty, batch and session length cannot change, so a session can never be added, removed or converted.
+**Rules (server side, always).** The new position must leave no hard conflict: faculty, batch and room overlap by real clock time (also between different slot records), room capacity / type / in service, breaks, disabled and unknown slots, lab length and consecutiveness, faculty hard unavailability, and the faculty member's weekly hour limit. Advisory notes (a faculty preference) come back in `warnings` and never block. A hard conflict that already existed at the target position also blocks the edit.
+**Validation state.** On success the whole timetable is re-validated inside the same transaction and the fresh result is recorded (`validation_passed`, `validated_at`, draft <-> validated), so a result from before the edit never survives. Approved / published / pending / rejected / archived timetables are immutable (409).
+**Concurrency.** One transaction: any read snapshot is ended, the timetable row is locked `FOR UPDATE`, the rows are re-read, the session is replaced, the timetable is re-validated, then everything commits; any failure rolls back and the original rows stay. Two edits at once are serialised, so the second is checked against the first. A moved session gets NEW entry ids (the old rows are replaced), so a stale entry id returns 404.
+**Audit.** The project has no audit table; each successful edit is written to the application log (timetable, user, assignment, old and new positions, validation result).
+
+### Milestone 9: Approval and publishing (R16, Jiya) - Admin only
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/timetables/:id/submit` | `draft | validated | rejected` -> `pending_approval`; re-validates first |
+| POST | `/timetables/:id/approve` | `pending_approval` -> `approved`; re-validates first; sets `approved_by`, `approved_at`; does NOT publish |
+| POST | `/timetables/:id/reject` | `pending_approval | approved` -> `rejected`; body `{reason}` (5-500 characters, required); also withdraws an approval |
+| POST | `/timetables/:id/publish` | `approved` -> `published`; re-validates first; sets `published_at`; the term's previously published version becomes `archived` |
+
+Success: `{timetable (header fields incl. status, allowed_actions, is_current_published, approved_by/at, published_at, rejection_reason), validation (the R10 report, null for reject), superseded: [ids archived by this publish]}`.
+Errors: 400 `validation_error` (missing / blank / too short or long `reason`, unknown body fields), 404, 409 `illegal_transition` (`details: {status, allowed_from}`), 409 `validation_failed` (`details.validation` = the full R10 report; the message counts hard errors and missing sessions), 401/403.
+
+**Status transitions.** `draft`/`validated` -> `pending_approval` -> `approved` -> `published` -> `archived` (only by being superseded); `pending_approval`/`approved` -> `rejected` -> (edit) -> `pending_approval` again. Everything else is 409. `validated` is reached by validating (R10); the real gate is the re-validation done by submit / approve / publish.
+**Re-validation.** submit, approve and publish run the full R10 validation (hard rules, completeness, weekly-hour limits) on the saved rows inside the transaction. The stored `validation_passed` is never trusted. If it fails, nothing moves, the honest result is stored (`validation_passed = false`, a `validated` timetable returns to `draft`) and the report is returned.
+**Immutability.** Editable and discardable: `draft`, `validated`, `rejected`. `pending_approval`, `approved`, `published`, `archived` cannot be edited or discarded; to change published data, generate a NEW version (R7) and run it through the workflow. Validating a published timetable only refreshes the flag and timestamp, never the status.
+**Current published version.** At most one timetable per term is `published`: the current version (`is_current_published`). Publishing another version archives it in the same transaction; archived rows keep their entries, version number, `approved_*` and `published_at` as history. Publishing an older approved version after a newer one makes the older one current (the last publication wins). No restore or comparison (R17).
+**Concurrency.** Each action ends any read snapshot, locks the term row (publish only) and then the timetable row `FOR UPDATE`, re-reads the status under the lock, then checks, changes and commits in one transaction. Of two simultaneous requests the second sees the new status and gets `illegal_transition`; two simultaneous publications are serialised and exactly one stays published.
+**Visibility.** All `/timetables` endpoints are Admin only (401/403 otherwise), so Faculty and Students cannot read drafts, published timetables or trigger a transition. Faculty and students read published timetables only through the dedicated read-only endpoints below (R11 / R12).
+**Logging.** Every transition is written to the application log as `timetable_transition` (timetable, term, action, from, to, user, superseded ids, rejection reason). The project has no audit table and none was added.
+
+### Faculty and student views of the published timetable (R11 / R12) - read-only
+
+| Method | Path | Who | Notes |
+|---|---|---|---|
+| GET | `/faculty/timetable` | Faculty only | the signed-in teacher's own classes in the current published timetable |
+| GET | `/student/timetable` | Student only | the whole current published timetable of the signed-in student's own batch |
+
+Both accept one optional query parameter, `term_id`. **Any other parameter (`faculty_id`, `batch_id`, `student_id`, `user_id`, `timetable_id`, ...) is refused with 400**, so identity can never be supplied by the client: it is derived from the token (`faculty.user_id` / `students.user_id`, then `students.batch_id`). Only GET exists (405 otherwise); Admin, the other student/faculty role and anonymous users get 403 / 401. An account with the role but no faculty / student record gets 409 `no_profile`.
+
+Response `data`: `{owner, term, terms, timetable, slots, sessions}`
+- `owner`: faculty `{name, employee_code}` or student `{name, batch}`.
+- `term`: the term shown (the ACTIVE term by default, or the one chosen with `term_id`); `terms`: every term that has a current published timetable (for a selector); either can be null.
+- `timetable`: `{name, version, published_at}` of the term's current published timetable, or `null` when none (the empty state). No ids, status or validation fields are ever returned.
+- `slots`: the active periods of the week including breaks (`day_of_week, day_name, period_no, start_time, end_time, slot_type`) so the grid can be drawn without the Admin-only time-slot API.
+- `sessions`: `{day_of_week, day_name, period_no, periods, start_time, end_time, subject{code,name,class_type}, room{code,name}}` plus `batch{name}` for faculty or `faculty{name}` for students. A lab's consecutive periods are ONE session (`periods` = 2, `end_time` of the last period).
+
+**What is visible.** Only a timetable whose status is `published` is ever read; draft, validated, pending_approval, approved, rejected and archived content is never returned. At most one timetable per term is published (R16), so that is the current version; a superseded version is archived and disappears from these views the moment the new one is published.
+**Terms.** No requirement asks for a term selector, so none was invented: the existing active-term flag decides the default, and other terms appear only if they hold a published timetable. A term without one returns an empty view, not an error.
+
+### Export (R18, Jiya) - PDF and Excel
+
+| Method | Path | Who | Notes |
+|---|---|---|---|
+| GET | `/timetables/:id/export?format=pdf\|xlsx` | Admin only | any saved timetable, any status; one grid per batch, a class list, and an "Unscheduled sessions" table if there are any |
+| GET | `/faculty/timetable/export?format=pdf\|xlsx[&term_id=]` | Faculty only | exactly what `GET /faculty/timetable` shows: the signed-in teacher's own classes in the current published timetable |
+| GET | `/student/timetable/export?format=pdf\|xlsx[&term_id=]` | Student only | exactly what `GET /student/timetable` shows: the whole current published timetable of the student's own batch |
+
+`format` is required (400 `validation_error` otherwise). The faculty / student exports are built from the SAME `published_service` view as the on-screen pages, so identity comes from the token only, the term logic is the same (active term by default, `term_id` selects a term that has a published timetable) and only the current `published` timetable is ever read. Any identity, batch or timetable parameter is 400. The admin export accepts no parameter except `format`.
+Success: the file itself (`application/pdf` or `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) with `Content-Disposition: attachment; filename="timetable-...-vN.ext"`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`.
+Errors (JSON envelope, no file): 400 invalid or missing `format` / unknown parameter / bad `term_id`; 404 `no_published_timetable` (the term has none; the message names the term), 404 `term_not_found`, 404 `no_active_term`, 404 for an unknown admin timetable id; 409 `no_profile`; 401 / 403. Draft, validated, pending_approval, approved, rejected and archived content is never exported to Faculty or Students.
+**Contents.** Title, term and academic year, version, publication date (faculty / student) or **status** (admin: a non-published document says "NOT the published timetable"), owner (teacher name and employee code, or student name and batch), a weekly grid (days x periods, breaks shown, a lab drawn as one block over its periods) and a class list with day, start / end, periods, duration, subject code and name, teacher (or batch for a teacher), room and type. No account emails, no ids, no validation or approval internals.
+**Excel specifics.** One worksheet per grid plus a filterable "Class list"; landscape, fit-to-width, frozen header, page numbers in the footer; every text value is stored as text, so a name that starts with `=` can never become a formula. **PDF specifics.** A4 landscape, header row repeats on every page, page numbers; fonts are the built-in Helvetica family, so characters outside Latin-1 are not drawn (they are kept in the Excel file).
+
 ## Planned (by owner)
 
 | Owner | Endpoints |
 |---|---|
-| Isha | `/faculty` CRUD, `/faculty/:id/availability`, `/faculty/:id/workload`, `/announcements` (+ `/publish`, `/mine`) |
+| Isha | `/faculty` CRUD, `/faculty/:id/availability`, `/announcements` (+ `/publish`, `/mine`) |
 | Diya | `GET /student/timetable`, `POST /import/students` (the other Diya endpoints are implemented above) |
 | Pragya | R23 equipment endpoints (optional) |
-| Jiya | `PATCH /timetables/:id/entries/:eid`, `/:id/submit|approve|reject|publish`, `/:id/export?format=pdf|xlsx`, `GET /faculty/timetable` |
+| Jiya | |
 
 ## In-process service contracts (planned signatures)
 

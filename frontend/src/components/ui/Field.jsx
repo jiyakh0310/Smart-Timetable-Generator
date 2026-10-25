@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import Icon from './Icon.jsx';
 
 // Label + control + hint/error wired together with ids so screen readers announce them.
@@ -24,6 +24,29 @@ export function TextField({ label, hint, error, ...inputProps }) {
   return (
     <FieldShell label={label} hint={hint} error={error} id={id}>
       <input id={id} className="input" aria-invalid={error ? 'true' : undefined} aria-describedby={describedBy(id, hint, error)} {...inputProps} />
+    </FieldShell>
+  );
+}
+
+export function TextAreaField({ label, hint, error, ...areaProps }) {
+  const id = useId();
+  return (
+    <FieldShell label={label} hint={hint} error={error} id={id}>
+      <textarea id={id} className="input" aria-invalid={error ? 'true' : undefined} aria-describedby={describedBy(id, hint, error)} {...areaProps} />
+    </FieldShell>
+  );
+}
+
+// Password input with a Show / Hide toggle. The toggle is a real button (keyboard and screen-reader friendly) and never changes the value.
+export function PasswordField({ label, hint, error, ...inputProps }) {
+  const id = useId();
+  const [shown, setShown] = useState(false);
+  return (
+    <FieldShell label={label} hint={hint} error={error} id={id}>
+      <div className="input-affix">
+        <input id={id} className="input" type={shown ? 'text' : 'password'} aria-invalid={error ? 'true' : undefined} aria-describedby={describedBy(id, hint, error)} {...inputProps} />
+        <button type="button" aria-pressed={shown} aria-label={shown ? 'Hide password' : 'Show password'} onClick={() => setShown((v) => !v)}>{shown ? 'Hide' : 'Show'}</button>
+      </div>
     </FieldShell>
   );
 }

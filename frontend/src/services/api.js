@@ -63,7 +63,31 @@ export async function request(path, { method = 'GET', body, auth = true } = {}) 
   return payload.data;
 }
 
+// File download (R18): same auth and error envelope as `request`, but the success body is a file, not JSON.
+export async function download(path) {
+  const headers = { Accept: '*/*' };
+  const token = tokenStore.get();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  let response;
+  try {
+    response = await fetch(`${BASE}${path}`, { headers });
+  } catch {
+    throw new ApiError(0, 'network_error', 'Cannot reach the server. Is the backend running?');
+  }
+  if (!response.ok) {
+    let payload = null;
+    try { payload = await response.json(); } catch { /* not JSON */ }
+    const err = payload?.error || {};
+    if (response.status === 401 && onUnauthorized) onUnauthorized();
+    throw new ApiError(response.status, err.code || 'request_failed', err.message || `The export failed (${response.status}).`, err.details);
+  }
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const filename = /filename="([^"]+)"/.exec(disposition)?.[1] || 'timetable';
+  return { blob: await response.blob(), filename };
+}
+
 export const api = {
+  download,
   get: (path) => request(path),
   post: (path, body, options) => request(path, { method: 'POST', body, ...options }),
   patch: (path, body) => request(path, { method: 'PATCH', body }),

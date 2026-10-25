@@ -16,14 +16,14 @@ Source of truth: the MoSCoW document (R1-R29), SRS, Planning, Design Tasks and t
 | R8 | Faculty / batch / classroom clash detection | Must | Pragya | M4A | **Done** as reusable backend checks + API (`clash_service.py`); the generator and editor will call them |
 | R9 | Classroom allocation by batch size and room capacity | Must | Pragya | M4A | **Done** as checks + room ranking/suggestion (`rank_rooms`, `/rooms/suggest`); automatic assignment happens inside the generator (R7) |
 | R10 | Timetable validation | Must | Jiya | M6 | **Done** (Admin validation endpoint + result panel + tests): hard rules via `validate_timetable`, completeness against the term's assignments, advisory warnings; sets `validation_passed`. Approval/publishing (R16/R11) not built |
-| R11 | Admin timetable management and publishing | Must | Jiya | M5 | Planned |
-| R12 | Students view published timetable (read-only) | Must | Diya | M6 | Planned |
+| R11 | Admin timetable management and publishing | Must | Jiya | M5 | **Partly done**: the Admin side (generate, validate, edit, approve, publish) and the faculty read-only view of their published classes are built; exports are built (R18) |
+| R12 | Students view published timetable (read-only) | Must | Diya | M6 | **Done** (a student sees the current published timetable of their own batch, read-only, server-enforced) |
 | R13 | Faculty availability and preferences | Should | Isha | M3A | **Done, Admin-managed** (hard unavailability + soft preferences). Faculty self-service is still planned (M8). |
-| R14 | Faculty workload balancing | Should | Isha | M8 | Planned |
-| R15 | Manual timetable editing with conflict checking | Should | Jiya | M5 | Planned |
-| R16 | Timetable approval workflow | Should | Jiya | M8 | Planned |
+| R14 | Faculty workload balancing | Should | Isha | M7 | **Done** for generation, validation and the Admin view: `max_weekly_hours` is a hard limit (measured in real teaching hours), workload spread across the week is a soft score. Faculty self-service workload view and `/faculty/:id/workload` are not built |
+| R15 | Manual timetable editing with conflict checking | Should | Jiya | M8 | **Done** (Admin moves one session of a draft/validated timetable to another slot and/or room; every hard rule re-checked on the server; the timetable is re-validated on save). Approval/publishing not built |
+| R16 | Timetable approval workflow | Should | Jiya | M9 | **Done** (Admin submit / approve / reject-with-reason / publish, each step re-validated on the server; one current published version per term; superseded versions archived). Faculty/student viewing of published timetables is R11/R12 and is not built |
 | R17 | Timetable version management | Should | *unowned* (Jiya's module) | M5 | **Partly done**: every generation gets the next version number and is saved as a draft; restore/compare deferred (as agreed) |
-| R18 | PDF/Excel timetable export | Should | Jiya | M7 | Planned |
+| R18 | PDF/Excel timetable export | Should | Jiya | M10 | **Done** (PDF and .xlsx export for Admin, Faculty and Student, server-filtered, with Export PDF / Export Excel controls) |
 | R19 | Notifications and announcements | Could | Isha | M9 | Planned |
 | R20 | Reports and analytics | Could | unowned | - | Not planned |
 | R21 | Audit logs | Could | unowned | - | Not planned |

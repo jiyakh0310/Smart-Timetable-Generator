@@ -34,7 +34,7 @@ export default function TimetablesPage() {
   const columns = [
     { key: 'name', header: 'Timetable', cell: (t) => (<span className="cell-stack"><strong>{t.name}</strong><small className="text-muted">{t.term.name} · {t.term.academic_year}</small></span>) },
     { key: 'version', header: 'Version', cell: (t) => <span className="mono">v{t.version}</span> },
-    { key: 'status', header: 'Status', cell: (t) => <StatusBadge status={t.status} /> },
+    { key: 'status', header: 'Status', cell: (t) => (<span className="cell-stack"><span><StatusBadge status={t.status} /></span>{t.is_current_published && <small><Badge tone="success">Current</Badge></small>}</span>) },
     { key: 'validation', header: 'Validation', cell: (t) => <Badge tone={validationState(t).tone}>{validationState(t).label}</Badge> },
     { key: 'periods', header: 'Scheduled', cell: (t) => plural(t.periods, 'period', 'periods') },
     {

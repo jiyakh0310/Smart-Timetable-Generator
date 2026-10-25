@@ -3,7 +3,7 @@ import AppShell from '../components/AppShell.jsx';
 import { AssignmentsPage, BatchesPage, StudentsPage, SubjectsPage, TimeSlotsPage } from '../features/diya/index.js';
 import { AvailabilityPage, FacultyPage } from '../features/isha/index.js';
 import { RoomsPage } from '../features/pragya/index.js';
-import { TimetablesPage } from '../features/jiya/index.js';
+import { FacultyTimetablePage, StudentTimetablePage, TimetablesPage } from '../features/jiya/index.js';
 import { Loading } from '../components/ui';
 import AdminDashboard from '../pages/admin/AdminDashboard.jsx';
 import FacultyDashboard from '../pages/faculty/FacultyDashboard.jsx';
@@ -25,6 +25,8 @@ const SCREENS = {
   'admin:assignments': AssignmentsPage,
   'admin:rooms': RoomsPage,
   'admin:timetables': TimetablesPage,
+  'faculty:timetable': FacultyTimetablePage,
+  'student:timetable': StudentTimetablePage,
   'admin:faculty': FacultyPage,
   'admin:availability': AvailabilityPage,
 };

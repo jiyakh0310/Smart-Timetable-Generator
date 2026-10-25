@@ -57,7 +57,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', 
       <p>{message}</p>
       <div className="dialog-actions">
         {showCancel && <Button variant="secondary" onClick={onCancel}>{cancelLabel}</Button>}
-        <Button variant={tone === 'danger' ? 'danger' : 'primary'} loading={busy} onClick={onConfirm}>{confirmLabel}</Button>
+        <Button variant={tone === 'danger' ? 'danger' : tone === 'success' ? 'success' : 'primary'} loading={busy} onClick={onConfirm}>{confirmLabel}</Button>
       </div>
     </Dialog>
   );

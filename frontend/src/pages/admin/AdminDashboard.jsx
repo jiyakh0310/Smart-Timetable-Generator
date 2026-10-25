@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { hrefFor, NAV } from '../../app/navConfig.js';
 import DashboardHero from '../../components/DashboardHero.jsx';
+import { DataTable } from '../../components/data';
 import { Badge, Card, Notice, Skeleton, StatCard, StatusBadge, TIMETABLE_STATUS } from '../../components/ui';
 import { useAuth } from '../../app/AuthContext.jsx';
 import { api } from '../../services/api.js';
@@ -80,30 +81,20 @@ export default function AdminDashboard() {
           description="All of this must be in place before a timetable can be generated."
           action={<Badge tone={allReady ? 'success' : 'warning'} dot>{readyCount} of {SETUP.length} ready</Badge>}
         >
-          <div className="table-wrap">
-            <table className="table">
-              <caption className="sr-only">Setup steps and how many records exist</caption>
-              <thead>
-                <tr><th scope="col">Step</th><th scope="col" className="num">Records</th><th scope="col">Status</th><th scope="col">Action</th></tr>
-              </thead>
-              <tbody>
-                {SETUP.map((step) => {
-                  const n = counts[step.key];
-                  return (
-                    <tr key={step.key}>
-                      <th scope="row">{step.label}</th>
-                      <td className="num">{n}</td>
-                      <td><Badge tone={n > 0 ? 'success' : 'neutral'} dot>{n > 0 ? 'Ready' : 'Missing'}</Badge></td>
-                      <td><SetupAction step={step} /></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            caption="Setup steps and how many records exist"
+            columns={[
+              { key: 'step', header: 'Step', cell: (step) => <strong>{step.label}</strong> },
+              { key: 'records', header: 'Records', align: 'right', cell: (step) => <span className="num">{counts[step.key]}</span> },
+              { key: 'status', header: 'Status', cell: (step) => <Badge tone={counts[step.key] > 0 ? 'success' : 'neutral'} dot>{counts[step.key] > 0 ? 'Ready' : 'Missing'}</Badge> },
+              { key: 'action', header: 'Action', cell: (step) => <SetupAction step={step} /> },
+            ]}
+            rows={SETUP}
+            rowKey={(step) => step.key}
+          />
         </Card>
 
-        <Card title="Timetable pipeline" description={timetables.total === 0 ? 'No timetable generated yet. Generation arrives in Milestone 4.' : `${timetables.total} timetable version(s)`}>
+        <Card title="Timetable pipeline" description={timetables.total === 0 ? 'No timetable generated yet. Generate one from Timetables once the setup is ready.' : `${timetables.total} timetable version(s)`}>
           <ol className="pipeline">
             {PIPELINE.map((status, i) => {
               const n = timetables.by_status[status];

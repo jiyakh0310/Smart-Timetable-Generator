@@ -2,7 +2,7 @@
 from app.common import dashboard
 from app.modules.diya import assignment_routes, batch_routes, student_routes, subject_routes, time_slot_routes
 from app.modules.isha import faculty_routes, routes as isha_routes
-from app.modules.jiya import timetable_routes
+from app.modules.jiya import published_routes, timetable_routes
 from app.modules.pragya import clash_routes, room_routes
 
 
@@ -21,5 +21,7 @@ def register_blueprints(app):
     app.register_blueprint(room_routes.bp)      # Pragya - /api/v1/rooms (R5, R9 suggest), admin only
     app.register_blueprint(clash_routes.bp)     # Pragya - /api/v1/conflicts (R8/R9), admin only
     app.register_blueprint(timetable_routes.bp) # Jiya  - /api/v1/timetables (R7 generate, list, detail, discard draft), admin only
+    app.register_blueprint(published_routes.faculty_bp)  # Jiya - GET /api/v1/faculty/timetable (R11), faculty only, own classes, published only
+    app.register_blueprint(published_routes.student_bp)  # Diya/Jiya - GET /api/v1/student/timetable (R12), students only, own batch, published only
     # next: jiya (validation workflow R10, approval, publishing)
     # M3: pragya (rooms, conflicts)   M4+: jiya (timetables)

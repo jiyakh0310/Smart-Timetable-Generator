@@ -14,6 +14,7 @@ const PATHS = {
   menu: <path d="M3 6h18M3 12h18M3 18h18" />,
   'chevron-down': <path d="m6 9 6 6 6-6" />,
   'chevron-right': <path d="m9 18 6-6-6-6" />,
+  download: <><path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M5 21h14" /></>,
   'chevron-left': <path d="m15 18-6-6 6-6" />,
   check: <path d="m20 6-11 11-5-5" />,
   alert: <><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><path d="M12 9v4M12 17h.01" /></>,

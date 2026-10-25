@@ -9,4 +9,9 @@ PyMySQL==1.2.3
 cryptography==50.0.2   # required by PyMySQL for MySQL 8 "caching_sha2_password" logins
 python-dotenv==1.2.4
 pytest==9.1.1
-# Added in later milestones: openpyxl (Excel), reportlab (PDF)
+# R18 export (added): Excel and PDF generation. reportlab pulls in pillow and charset-normalizer; openpyxl pulls in et-xmlfile.
+openpyxl==3.1.5
+reportlab==5.1.0
+pillow==13.0.0
+charset-normalizer==3.5.2
+et-xmlfile==2.0.0

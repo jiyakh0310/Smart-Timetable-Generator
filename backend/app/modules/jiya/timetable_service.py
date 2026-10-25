@@ -25,7 +25,16 @@ from app.modules.jiya import generator
 from app.modules.pragya import clash_service
 
 MAX_ATTEMPTS = 3
-DISCARDABLE = (TimetableStatus.DRAFT, TimetableStatus.VALIDATED)  # nothing that was approved or published can be removed here
+_S = TimetableStatus
+EDITABLE = (_S.DRAFT, _S.VALIDATED, _S.REJECTED)  # R15 / R16: pending approval, approved, published and archived are immutable
+DISCARDABLE = (_S.DRAFT, _S.VALIDATED, _S.REJECTED)  # nothing that is pending, approved, published or archived can be removed here
+# R16: action -> (statuses it may start from, status it leads to). The single source of truth for the workflow.
+TRANSITIONS = {
+    "submit": ((_S.DRAFT, _S.VALIDATED, _S.REJECTED), _S.PENDING_APPROVAL),
+    "approve": ((_S.PENDING_APPROVAL,), _S.APPROVED),
+    "reject": ((_S.PENDING_APPROVAL, _S.APPROVED), _S.REJECTED),
+    "publish": ((_S.APPROVED,), _S.PUBLISHED),
+}
 
 
 def get_or_404(timetable_id: int) -> Timetable:
@@ -76,6 +85,13 @@ def serialize(t: Timetable, counts: dict | None = None) -> dict:
         "periods": counts["periods"],
         "unscheduled_sessions": counts["unscheduled_sessions"],
         "can_discard": t.status in DISCARDABLE,
+        "can_edit": t.status in EDITABLE,
+        "allowed_actions": [a for a, (start, _) in TRANSITIONS.items() if t.status in start],
+        "is_current_published": t.status == TimetableStatus.PUBLISHED,
+        "approved_by": t.approved_by,
+        "approved_at": t.approved_at.isoformat() if t.approved_at else None,
+        "published_at": t.published_at.isoformat() if t.published_at else None,
+        "rejection_reason": t.rejection_reason,
     }
 
 
@@ -158,6 +174,7 @@ def generate(term_id: int, user_id: int) -> dict:
 
     for attempt in range(MAX_ATTEMPTS):
         try:
+            db.session.commit()  # end any read snapshot so what is read after the lock is current (MySQL repeatable read)
             db.session.execute(db.select(AcademicTerm.id).where(AcademicTerm.id == term_id).with_for_update())  # serialise generations of one term
             assignments = _active_assignments(term_id)
             if not assignments:
@@ -197,6 +214,6 @@ def summary(timetable: Timetable, plan: generator.Plan) -> dict:
 
 def discard(timetable: Timetable) -> None:
     if timetable.status not in DISCARDABLE:
-        raise AppError("timetable_not_draft", f"Only a draft or validated timetable can be discarded; this timetable is {timetable.status.value}.", 409)
+        raise AppError("timetable_not_draft", f"Only a draft, validated or rejected timetable can be discarded; this timetable is {timetable.status.value}.", 409)
     db.session.delete(timetable)  # entries and unscheduled items cascade
     db.session.commit()

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { crumbsFor } from '../../app/navConfig.js';
 import { Badge, Button, ButtonLink, Card, ConfirmDialog, EmptyState, Icon, Loading, Notice, PageHeader, SelectField, useToast } from '../../components/ui';
+import useMediaQuery from '../../hooks/useMediaQuery.js';
 import useLookup from '../diya/useLookup.js';
 import { availabilityApi, buildGrid, countStatuses, isDirty, isEditable, nextStatus, STATUS_LABEL, statusMapOf, toEntries } from './availability.js';
 
@@ -12,14 +13,14 @@ const LEGEND = [
   { status: 'preferred', text: 'Soft wish. Used when possible, never required.' },
 ];
 
-function Cell({ slot, status, onCycle }) {
+function Cell({ slot, status, onCycle, picked }) {
   const when = `${slot.day_name} period ${slot.period_no}, ${slot.start_time} to ${slot.end_time}`;
-  if (slot.slot_type === 'break') return <td className="avail-static" aria-label={`${when}: break`}>Break</td>;
+  if (slot.slot_type === 'break') return <td className="avail-static" data-picked={picked || undefined} aria-label={`${when}: break`}>Break</td>;
   if (!slot.is_active) {
-    return <td className="avail-static" aria-label={`${when}: this time slot is disabled`}>Disabled{status !== 'available' ? <small>{STATUS_LABEL[status]} kept</small> : null}</td>;
+    return <td className="avail-static" data-picked={picked || undefined} aria-label={`${when}: this time slot is disabled`}>Disabled{status !== 'available' ? <small>{STATUS_LABEL[status]} kept</small> : null}</td>;
   }
   return (
-    <td>
+    <td data-picked={picked || undefined}>
       <button type="button" className={`avail-cell is-${status}`} onClick={onCycle} aria-label={`${when}: ${STATUS_LABEL[status]}. Activate to change.`}>
         {STATUS_LABEL[status]}
       </button>
@@ -41,11 +42,14 @@ export default function AvailabilityPage() {
   const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
   const [pendingId, setPendingId] = useState(null); // faculty chosen while there are unsaved changes
+  const narrow = useMediaQuery('(max-width: 760px)', false); // phones: one day at a time instead of the 5-day grid
+  const [dayPick, setDayPick] = useState(null);
 
   const slots = data?.slots ?? [];
   const dirty = data ? isDirty(slots, saved, local) : false;
   const grid = useMemo(() => buildGrid(slots), [slots]);
   const counts = countStatuses(slots, local);
+  const pickedDay = grid.days.some((d) => d.day_of_week === dayPick) ? dayPick : grid.days[0]?.day_of_week;
 
   const load = useCallback(async (id) => {
     setLoading(true);
@@ -156,13 +160,20 @@ export default function AvailabilityPage() {
             </EmptyState>
           ) : (
             <>
-              <div className="table-wrap">
-                <table className="avail-grid">
+              {narrow && (
+                <div className="tabs avail-days" role="tablist" aria-label="Day of week">
+                  {grid.days.map((d) => (
+                    <button key={d.day_of_week} type="button" role="tab" aria-selected={d.day_of_week === pickedDay} onClick={() => setDayPick(d.day_of_week)}>{d.day_name.slice(0, 3)}</button>
+                  ))}
+                </div>
+              )}
+              <div className="avail-wrap">
+                <table className={`avail-grid${narrow ? ' is-one-day' : ''}`}>
                   <caption className="sr-only">Weekly availability for {data.faculty.name}. Each cell cycles between available, unavailable and preferred.</caption>
                   <thead>
                     <tr>
                       <th scope="col">Period</th>
-                      {grid.days.map((d) => <th key={d.day_of_week} scope="col">{d.day_name}</th>)}
+                      {grid.days.map((d) => <th key={d.day_of_week} scope="col" className={d.day_of_week === pickedDay ? 'is-picked' : undefined}>{d.day_name}</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -172,8 +183,8 @@ export default function AvailabilityPage() {
                         {grid.days.map((d) => {
                           const slot = grid.cell(d.day_of_week, p.period_no);
                           return slot
-                            ? <Cell key={d.day_of_week} slot={slot} status={local[slot.time_slot_id]} onCycle={() => cycle(slot.time_slot_id)} />
-                            : <td key={d.day_of_week} className="avail-static" aria-label="No time slot">—</td>;
+                            ? <Cell key={d.day_of_week} slot={slot} status={local[slot.time_slot_id]} onCycle={() => cycle(slot.time_slot_id)} picked={d.day_of_week === pickedDay} />
+                            : <td key={d.day_of_week} className="avail-static" data-picked={d.day_of_week === pickedDay || undefined} aria-label="No time slot">—</td>;
                         })}
                       </tr>
                     ))}

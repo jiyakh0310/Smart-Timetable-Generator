@@ -20,6 +20,38 @@ beforeEach(() => {
   auth = { user: admin, status: 'ready', logout: vi.fn(), login: vi.fn() };
 });
 
+describe('read-only published timetable screens (R11 / R12)', () => {
+  const view = { owner: { name: 'X', employee_code: 'F001', batch: 'B' }, term: null, terms: [], timetable: null, slots: [], sessions: [] };
+
+  it('/faculty/timetable serves the real screen and only calls the faculty endpoint', async () => {
+    auth = { ...auth, user: { full_name: 'Dr. Rakesh Sharma', email: 'f@x.test', role: 'faculty', faculty: null } };
+    get.mockResolvedValue(view);
+    renderAt('/faculty/timetable');
+    expect(await screen.findByRole('heading', { level: 1, name: 'My timetable' })).toBeInTheDocument();
+    expect(screen.queryByText('Not available yet')).not.toBeInTheDocument();
+    await screen.findByText('No published timetable yet');
+    expect(get.mock.calls.map((c) => c[0])).toEqual(['/faculty/timetable']);
+  });
+
+  it('/student/timetable serves the real screen and only calls the student endpoint', async () => {
+    auth = { ...auth, user: student };
+    get.mockResolvedValue(view);
+    renderAt('/student/timetable');
+    expect(await screen.findByRole('heading', { level: 1, name: 'My timetable' })).toBeInTheDocument();
+    await screen.findByText('No published timetable yet');
+    expect(get.mock.calls.map((c) => c[0])).toEqual(['/student/timetable']);
+  });
+
+  it('a student cannot open the faculty timetable and a faculty member cannot open the student one', () => {
+    auth = { ...auth, user: student };
+    renderAt('/faculty/timetable');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Aarav/);
+    auth = { ...auth, user: { full_name: 'Dr. Rakesh Sharma', email: 'f@x.test', role: 'faculty', faculty: null } };
+    renderAt('/student/timetable');
+    expect(get).not.toHaveBeenCalled();
+  });
+});
+
 describe('routing of built vs unbuilt screens', () => {
   it('/admin/time-slots serves the real Time Slots screen', async () => {
     renderAt('/admin/time-slots');

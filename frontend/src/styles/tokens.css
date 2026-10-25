@@ -1,44 +1,50 @@
-/* Design tokens - the only place raw colours, sizes and shadows are defined. */
+/* Design tokens - the only place raw colours, sizes and shadows are defined.
+   Direction: warm-white / light-lavender canvas, deep indigo for action, soft indigo-tinted depth (layered surfaces, a top highlight, small hover lifts). */
 :root {
   /* Typography */
-  --font-sans: Inter, 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: Inter, 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
   --text-xs: 0.75rem;
   --text-sm: 0.8125rem;
   --text-base: 0.9375rem;
   --text-lg: 1.0625rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
+  --text-xl: 1.3125rem;
+  --text-2xl: 1.625rem;
 
-  /* Neutrals */
-  --bg: #f5f6fa;
+  /* Canvas and surfaces */
+  --bg: #f8f7fc;
   --surface: #ffffff;
-  --surface-2: #f9fafc;
-  --border: #e3e6ee;
-  --border-strong: #cdd2de;
-  --input-border: #7c859b; /* 3.7:1 on white - meets WCAG 1.4.11 for form-control boundaries */
-  --text: #171c2e;
-  --text-2: #4a5368;
-  --text-3: #66708a;
+  --surface-2: #faf9fe;
+  --surface-3: #f3f1fb;
+  --border: #e7e4f2;
+  --border-strong: #d3cfe5;
+  --input-border: #857fa3; /* >= 3:1 on white - meets WCAG 1.4.11 for form-control boundaries */
+  --text: #1b1a33;
+  --text-2: #4a4968;
+  --text-3: #66657f;
 
-  /* Brand (indigo) */
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-active: #3730a3;
-  --primary-50: #f0f1ff;
-  --primary-100: #e0e3ff;
-  --primary-700: #3730a3;
+  /* Brand (deep indigo) */
+  --primary: #4338ca;
+  --primary-hover: #3a30b1;
+  --primary-active: #31299a;
+  --primary-50: #f2f1ff;
+  --primary-100: #e4e2ff;
+  --primary-200: #cdc9fb;
+  --primary-700: #342b9e;
+  --grad-primary: linear-gradient(180deg, #5249dc 0%, #4338ca 100%);
+  --grad-hero: linear-gradient(135deg, #2f2790 0%, #4338ca 55%, #5a50e6 100%);
 
-  /* Status */
-  --success: #146c43;
-  --success-bg: #e5f5ec;
-  --warning: #8a5300;
-  --warning-bg: #fff3d6;
-  --danger: #b42318;
+  /* Status (each is paired with a text label or icon, never colour alone) */
+  --success: #0f6b3f;
+  --success-bg: #e6f6ed;
+  --success-solid: #12804b;
+  --warning: #8a5000;
+  --warning-bg: #fff4d9;
+  --danger: #b3261e;
   --danger-bg: #fdecea;
-  --info: #1a4fc9;
-  --info-bg: #e8effe;
-  --lab: #0f766e;
-  --lab-bg: #e1f4f1;
+  --info: #1d4fc4;
+  --info-bg: #e9f0ff;
+  --lab: #0b6e66;
+  --lab-bg: #e0f4f1;
 
   /* Spacing (4px scale) */
   --s-1: 4px;
@@ -51,21 +57,25 @@
   --s-10: 40px;
 
   /* Radii - restrained */
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 12px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
   --r-pill: 999px;
 
-  /* Elevation */
-  --sh-1: 0 1px 2px rgba(23, 28, 46, 0.06);
-  --sh-2: 0 1px 3px rgba(23, 28, 46, 0.08), 0 4px 12px rgba(23, 28, 46, 0.06);
-  --sh-3: 0 4px 6px rgba(23, 28, 46, 0.05), 0 12px 28px rgba(23, 28, 46, 0.12);
+  /* Elevation: indigo-tinted layers + a thin top highlight for a soft, lit-from-above feel */
+  --hl: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --sh-1: 0 1px 2px rgba(36, 29, 99, 0.06), 0 1px 1px rgba(36, 29, 99, 0.04);
+  --sh-2: 0 2px 4px rgba(36, 29, 99, 0.05), 0 10px 22px -8px rgba(36, 29, 99, 0.14);
+  --sh-3: 0 6px 12px rgba(36, 29, 99, 0.06), 0 26px 50px -14px rgba(36, 29, 99, 0.28);
 
   /* Layout & controls */
-  --sidebar-w: 268px;
-  --topbar-h: 60px;
-  --control-h: 40px;
-  --focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.38);
+  --topbar-h: 64px;
+  --page-max: 1360px;
+  --page-pad: 32px;
+  --control-h: 42px;
+  --control-h-sm: 34px;
+  --focus-ring: 0 0 0 3px rgba(67, 56, 202, 0.4);
 
   /* Motion */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);

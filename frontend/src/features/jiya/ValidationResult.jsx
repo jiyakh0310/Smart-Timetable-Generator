@@ -42,7 +42,7 @@ const ValidationResult = forwardRef(function ValidationResult({ result }, headin
         {result.hard_errors.length === 0
           ? <p className="text-muted">No hard conflicts: no overlaps, every room fits and is in service, and every slot is a valid class period.</p>
           : (
-            <ul className="issue-list">
+            <ul className="issue-list is-hard">
               {result.hard_errors.map((c, i) => (
                 <li key={`${c.code}-${i}`}><Badge tone="danger">{c.code.replace(/_/g, ' ')}</Badge> <span>{c.message}</span></li>
               ))}
@@ -57,7 +57,7 @@ const ValidationResult = forwardRef(function ValidationResult({ result }, headin
           : (
             <>
               <p className="text-muted">Warnings are advice only, such as a faculty preference that could not be honoured. They never make validation fail.</p>
-              <ul className="issue-list">
+              <ul className="issue-list is-soft">
                 {result.warnings.map((c, i) => (
                   <li key={`${c.code}-${i}`}><Badge tone="warning">{c.code.replace(/_/g, ' ')}</Badge> <span>{c.message}</span></li>
                 ))}

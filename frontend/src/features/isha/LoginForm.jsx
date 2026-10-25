@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext.jsx';
 import { ROLE_HOME } from '../../app/navConfig.js';
-import { Button, Notice, TextField } from '../../components/ui';
+import { Button, Notice, PasswordField, TextField } from '../../components/ui';
 
 export default function LoginForm() {
   const { login } = useAuth();
@@ -39,8 +39,8 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit} noValidate className="form">
       {error && <Notice tone="danger">{error}</Notice>}
-      <TextField label="Email" type="email" autoComplete="username" value={form.email} onChange={update('email')} error={fieldErrors.email} autoFocus />
-      <TextField label="Password" type="password" autoComplete="current-password" value={form.password} onChange={update('password')} error={fieldErrors.password} />
+      <TextField label="Email" type="email" autoComplete="username" placeholder="you@institution.edu" value={form.email} onChange={update('email')} error={fieldErrors.email} autoFocus />
+      <PasswordField label="Password" autoComplete="current-password" value={form.password} onChange={update('password')} error={fieldErrors.password} />
       <Button type="submit" block loading={busy}>{busy ? 'Signing in…' : 'Sign in'}</Button>
     </form>
   );
