@@ -75,7 +75,10 @@ describe('Admin dashboard', () => {
   });
 });
 
+const EMPTY_FEED = { items: [], page: 1, per_page: 3, total: 0, pages: 1 };
+
 describe('Faculty dashboard', () => {
+  beforeEach(() => { get.mockResolvedValue(EMPTY_FEED); });
   it('shows the real faculty profile and links to the timetable and marks availability as not available yet', () => {
     user = faculty;
     renderPage(<FacultyDashboard />);
@@ -84,17 +87,19 @@ describe('Faculty dashboard', () => {
     expect(screen.getByText('18 h')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open my timetable' })).toHaveAttribute('href', '/faculty/timetable');
     expect(screen.getAllByText(/Not available yet/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute('href', '/faculty/announcements');
     noConsoleErrors();
   });
 
   it('warns when the account has no faculty record', () => {
     user = { ...faculty, faculty: null };
     renderPage(<FacultyDashboard />);
-    expect(screen.getByRole('status')).toHaveTextContent(/not linked to a faculty record/i);
+    expect(screen.getByText(/not linked to a faculty record/i)).toBeInTheDocument();
   });
 });
 
 describe('Student dashboard', () => {
+  beforeEach(() => { get.mockResolvedValue(EMPTY_FEED); });
   it('shows the student batch, is read-only and has no editing controls', () => {
     user = student;
     renderPage(<StudentDashboard />);
@@ -103,7 +108,8 @@ describe('Student dashboard', () => {
     expect(screen.getByText('CSE23001')).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open my timetable' })).toHaveAttribute('href', '/student/timetable');
-    expect(screen.getAllByText(/Not available yet/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute('href', '/student/announcements');
+    expect(screen.queryByText(/Not available yet/)).not.toBeInTheDocument(); // nothing on the student dashboard is a placeholder any more
     noConsoleErrors();
   });
 });

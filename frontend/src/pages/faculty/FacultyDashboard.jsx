@@ -1,6 +1,7 @@
 import { useAuth } from '../../app/AuthContext.jsx';
 import DashboardHero from '../../components/DashboardHero.jsx';
 import FeaturePending from '../../components/FeaturePending.jsx';
+import { LatestAnnouncements } from '../../features/isha/index.js';
 import { ButtonLink, Card, EmptyState, Notice, StatCard } from '../../components/ui';
 
 export default function FacultyDashboard() {
@@ -32,6 +33,7 @@ export default function FacultyDashboard() {
           You will be able to mark the time slots you can teach and prefer.
         </FeaturePending>
       </div>
+      <LatestAnnouncements role="faculty" />
     </>
   );
 }

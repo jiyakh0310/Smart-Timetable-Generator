@@ -48,7 +48,9 @@ class TestClassification:
         (wrapped(1129, "Host '10.1.1.1' is blocked because of many connection errors"), "host_not_allowed"),
         (wrapped(1130, "Host '10.1.1.1' is not allowed to connect to this MySQL server"), "host_not_allowed"),
         (wrapped(2003, "Can't connect to MySQL server on 'h' (timed out)"), "network_timeout"),
-        (wrapped(2003, "Can't connect to MySQL server on 'h' ([Errno -2] Name or service not known)"), "dns_failure"),
+        (wrapped(2003, "Can't connect to MySQL server on 'h' ([Errno -2] Name or service not known)"), "dns_not_found"),
+        (wrapped(2003, "Can't connect to MySQL server on 'h' ([Errno -3] Temporary failure in name resolution)"), "dns_temporary"),
+        (wrapped(2003, "Can't connect to MySQL server on 'h' ([Errno 11001] getaddrinfo failed)"), "dns_not_found"),
         (wrapped(2003, "Can't connect to MySQL server on 'h' ([Errno 111] Connection refused)"), "connection_refused"),
         (wrapped(2013, "Lost connection to MySQL server during query"), "connection_failed"),
         (wrapped(2003, "Can't connect to MySQL server on 'h' ([SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'h'. (_ssl.c:1020))"), "tls_hostname_mismatch"),
@@ -71,7 +73,7 @@ class TestClassification:
 
     def test_every_reason_has_advice(self):
         for reason in ("tls_hostname_mismatch", "tls_certificate_untrusted", "tls_handshake_failed", "tls_required", "authentication_failed", "database_access_denied",
-                       "unknown_database", "host_not_allowed", "network_timeout", "dns_failure", "connection_refused", "connection_failed", "unknown"):
+                       "unknown_database", "host_not_allowed", "network_timeout", "dns_not_found", "dns_temporary", "connection_refused", "connection_failed", "unknown"):
             assert dx.HINTS[reason]
         assert "VERIFY_CA" in dx.HINTS["tls_hostname_mismatch"]
 
@@ -118,7 +120,7 @@ class TestHealthEndpoint:
             response = client.get("/api/v1/health")
         body = response.get_json()
         assert response.status_code == 503 and body["success"] is False
-        assert body["error"] == {"code": "database_unavailable", "message": "Database is not reachable.", "details": {"reason": "authentication_failed"}}
+        assert body["error"] == {"code": "database_unavailable", "message": "Database is not reachable.", "details": {"reason": "authentication_failed", "retryable": False}}
         text = response.get_data(as_text=True)
         assert PASSWORD not in text and "avnadmin" not in text and "10.0.0.1" not in text
 

@@ -14,6 +14,6 @@ from app.models.academic import (
 )
 from app.models.faculty import AvailabilityStatus, Faculty, FacultyAvailability
 from app.models.timetable import Timetable, TimetableEntry, TimetableStatus, UnscheduledItem
-from app.models.communication import Announcement, AnnouncementStatus, Audience, SystemSetting
+from app.models.communication import Announcement, AnnouncementCategory, AnnouncementStatus, Audience, SystemSetting
 
 __all__ = [name for name in dir() if not name.startswith("_")]

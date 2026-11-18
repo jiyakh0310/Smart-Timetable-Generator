@@ -1,6 +1,6 @@
 import { useAuth } from '../../app/AuthContext.jsx';
 import DashboardHero from '../../components/DashboardHero.jsx';
-import FeaturePending from '../../components/FeaturePending.jsx';
+import { LatestAnnouncements } from '../../features/isha/index.js';
 import { ButtonLink, Card, EmptyState, Notice, StatCard } from '../../components/ui';
 
 export default function StudentDashboard() {
@@ -29,9 +29,7 @@ export default function StudentDashboard() {
             See your classes, teachers and rooms for the week once the administrator has published the timetable.
           </EmptyState>
         </Card>
-        <FeaturePending title="Announcements" icon="bell" req="R19" milestone="M9">
-          Timetable and classroom changes will be posted here.
-        </FeaturePending>
+        <LatestAnnouncements role="student" />
       </div>
     </>
   );

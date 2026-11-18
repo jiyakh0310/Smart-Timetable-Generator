@@ -42,7 +42,7 @@ A summary card shows name, status, "Current published version", validation state
 During the redesign the screens were driven in headless Chrome against a throwaway database: every route for each role at 360, 390, 768, 1024 and 1440px (130 views) reported zero horizontal page overflow and zero inner horizontal scrollers (before the redesign: 12 views scrolled sideways at 390px and one overflowed the page at 1440px), plus menu, drawer, dialog, keyboard and focus checks. The scripts are not part of the repository; manual checking remains the final word.
 
 ## Honesty rules
-No sample data ships in the UI. A screen whose backend does not exist shows "Not available yet" with its owner, requirement and milestone (Announcements, faculty self-service availability and the faculty workload page are still in that state).
+No sample data ships in the UI. A screen whose backend does not exist shows "Not available yet" with its owner, requirement and milestone (faculty self-service availability and the faculty workload page are still in that state).
 
 ## Shared list/table pattern (Milestone 2)
 Every management screen is built from the same parts; `features/diya/TimeSlotsPage.jsx` is the reference.

@@ -1,7 +1,7 @@
 """Member-owned feature modules. Each member registers their blueprint(s) here."""
 from app.common import dashboard
 from app.modules.diya import assignment_routes, batch_routes, student_routes, subject_routes, time_slot_routes
-from app.modules.isha import faculty_routes, routes as isha_routes
+from app.modules.isha import announcement_routes, faculty_routes, routes as isha_routes
 from app.modules.jiya import published_routes, timetable_routes
 from app.modules.pragya import clash_routes, room_routes
 
@@ -9,6 +9,7 @@ from app.modules.pragya import clash_routes, room_routes
 def register_blueprints(app):
     app.register_blueprint(isha_routes.bp)      # Isha  - /api/v1/auth
     app.register_blueprint(faculty_routes.bp)   # Isha  - /api/v1/faculty (R2, R13), admin only
+    app.register_blueprint(announcement_routes.bp)  # Isha - /api/v1/announcements (R19): admin manages, everyone reads published
     app.register_blueprint(dashboard.bp)        # shared - /api/v1/admin/summary
     app.register_blueprint(time_slot_routes.bp) # Diya  - /api/v1/time-slots (R6)
     app.register_blueprint(subject_routes.bp)   # Diya  - /api/v1/subjects (R4)

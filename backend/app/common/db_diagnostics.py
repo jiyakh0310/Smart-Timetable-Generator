@@ -19,11 +19,20 @@ HINTS = {
     "unknown_database": "The database name does not exist on this server. Check the name at the end of DATABASE_URL (or DB_NAME).",
     "host_not_allowed": "The server refuses connections from this address. Check the provider's IP allow-list.",
     "network_timeout": "The connection timed out. Check host and port, and the provider's IP allow-list / firewall.",
-    "dns_failure": "The host name cannot be resolved. Check the host in DATABASE_URL (or DB_HOST).",
+    "dns_not_found": "The database host name does not exist in DNS. Check the host in DATABASE_URL (or DB_HOST) against the provider's console, and that the service is running (a powered-off or rebuilt service can lose or change its host name).",
+    "dns_temporary": "DNS is temporarily failing (the resolver could not be reached or timed out). This usually clears by itself; the app retries a few times. If it persists, check the provider and platform status pages.",
     "connection_refused": "Nothing is listening on that host and port. Check the port in DATABASE_URL (or DB_PORT).",
     "connection_failed": "The server could not be reached or dropped the connection. Check host, port, TLS settings and the provider's status.",
     "unknown": "Unclassified error; see the redacted message in the log.",
 }
+
+# Failures that can clear by themselves. Wrong credentials, TLS problems and a wrong database name never will, so they are never retried.
+RETRYABLE = frozenset({"dns_not_found", "dns_temporary", "network_timeout", "connection_refused", "connection_failed"})
+
+
+def is_retryable(reason: str) -> bool:
+    return reason in RETRYABLE
+
 
 URL_PASSWORD = re.compile(r"(://[^:/@\s]+:)[^@\s]+(@)")
 
@@ -68,8 +77,10 @@ def classify(exc: BaseException) -> str:
         return "host_not_allowed"
     if "timed out" in text or "timeout" in text:
         return "network_timeout"
-    if any(p in text for p in ("name or service not known", "getaddrinfo", "nodename nor servname", "temporary failure in name resolution", "no address associated")):
-        return "dns_failure"
+    if "temporary failure in name resolution" in text or "[errno -3]" in text:
+        return "dns_temporary"
+    if any(p in text for p in ("name or service not known", "getaddrinfo", "nodename nor servname", "no address associated", "[errno -2]", "[errno -5]")):
+        return "dns_not_found"
     if "connection refused" in text or "winerror 10061" in text:
         return "connection_refused"
     if code in (2002, 2003, 2006, 2013) or "can't connect" in text or "lost connection" in text or "server has gone away" in text:

@@ -262,11 +262,27 @@ Errors (JSON envelope, no file): 400 invalid or missing `format` / unknown param
 **Contents.** Title, term and academic year, version, publication date (faculty / student) or **status** (admin: a non-published document says "NOT the published timetable"), owner (teacher name and employee code, or student name and batch), a weekly grid (days x periods, breaks shown, a lab drawn as one block over its periods) and a class list with day, start / end, periods, duration, subject code and name, teacher (or batch for a teacher), room and type. No account emails, no ids, no validation or approval internals.
 **Excel specifics.** One worksheet per grid plus a filterable "Class list"; landscape, fit-to-width, frozen header, page numbers in the footer; every text value is stored as text, so a name that starts with `=` can never become a formula. **PDF specifics.** A4 landscape, header row repeats on every page, page numbers; fonts are the built-in Helvetica family, so characters outside Latin-1 are not drawn (they are kept in the Excel file).
 
+## Announcements (R19, Isha) - implemented
+
+Base `/api/v1/announcements`. Categories: `general`, `academic`, `timetable_change`, `exam`, `urgent`. Status: `draft` or `published`. Content is plain text (title 3-200, message 5-5000 characters) and is never rendered as HTML.
+
+| Method | Path | Who | Notes |
+|---|---|---|---|
+| GET | `/published` | any signed-in user | Published only, newest first. Query: `category`, `q`, `page`, `per_page` |
+| GET | `/published/:id` | any signed-in user | 404 for a draft (a draft's existence is not revealed) |
+| GET | `` | Admin | All announcements. Query: `status`, `category`, `q`, `page`, `per_page` |
+| POST | `` | Admin | Body `{title, message, category?, publish?}`; a draft unless `publish` is `true` |
+| GET / PATCH / DELETE | `/:id` | Admin | PATCH edits `title`, `message`, `category` only |
+| POST | `/:id/publish` | Admin | 409 `already_published` |
+| POST | `/:id/unpublish` | Admin | 409 `not_published`; clears the publish date |
+
+Item: `{id, title, message, category, category_label, status, published_at, created_at, updated_at, author:{name}}`. The author is shown by name only; the e-mail address is never returned. Unknown fields are rejected (422); faculty and students get 403 on every Admin route.
+
 ## Planned (by owner)
 
 | Owner | Endpoints |
 |---|---|
-| Isha | `/faculty` CRUD, `/faculty/:id/availability`, `/announcements` (+ `/publish`, `/mine`) |
+| Isha | `/faculty` CRUD, `/faculty/:id/availability` (announcements are implemented, see above) |
 | Diya | `GET /student/timetable`, `POST /import/students` (the other Diya endpoints are implemented above) |
 | Pragya | R23 equipment endpoints (optional) |
 | Jiya | |

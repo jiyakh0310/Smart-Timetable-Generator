@@ -1,6 +1,7 @@
 """Isha - User & Faculty Management: authentication logic (R1)."""
 from datetime import datetime, timezone
 
+from flask import current_app
 from sqlalchemy import func
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -18,10 +19,13 @@ def authenticate(email: str, password: str) -> User:
     user = db.session.scalar(db.select(User).where(func.lower(User.email) == email.strip().lower()))
     password_ok = check_password_hash(user.password_hash if user else _DUMMY_HASH, password)
     if user is None or not password_ok or not user.is_active:
-        # One generic message for wrong email, wrong password and disabled account.
+        # The CLIENT gets one generic message for wrong email, wrong password and disabled account. The LOG says which one (never the email or password).
+        reason = "unknown_email" if user is None else "wrong_password" if not password_ok else "account_disabled"
+        current_app.logger.warning("Login rejected [%s]", reason)
         raise AppError("invalid_credentials", "Invalid email or password.", 401)
     user.last_login = datetime.now(timezone.utc).replace(tzinfo=None)
     db.session.commit()
+    current_app.logger.info("Login ok user_id=%s role=%s", user.id, user.role.value)
     return user
 
 

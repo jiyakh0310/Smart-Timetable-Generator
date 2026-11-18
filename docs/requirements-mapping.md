@@ -24,7 +24,7 @@ Source of truth: the MoSCoW document (R1-R29), SRS, Planning, Design Tasks and t
 | R16 | Timetable approval workflow | Should | Jiya | M9 | **Done** (Admin submit / approve / reject-with-reason / publish, each step re-validated on the server; one current published version per term; superseded versions archived). Faculty/student viewing of published timetables is R11/R12 and is not built |
 | R17 | Timetable version management | Should | *unowned* (Jiya's module) | M5 | **Partly done**: every generation gets the next version number and is saved as a draft; restore/compare deferred (as agreed) |
 | R18 | PDF/Excel timetable export | Should | Jiya | M10 | **Done** (PDF and .xlsx export for Admin, Faculty and Student, server-filtered, with Export PDF / Export Excel controls) |
-| R19 | Notifications and announcements | Could | Isha | M9 | Planned |
+| R19 | Notifications and announcements | Could | Isha | M9 | **Done** (announcements: admin create/edit/publish/unpublish/delete, faculty and student feed; in-app notifications for reschedule requests remain unbuilt) |
 | R20 | Reports and analytics | Could | unowned | - | Not planned |
 | R21 | Audit logs | Could | unowned | - | Not planned |
 | R22 | Bulk import (Excel/CSV) | Could | Diya | M9 | Planned |
@@ -54,7 +54,7 @@ Build order follows MoSCoW priority: all Must items before Should, Should before
 | 5 | Hand-drawn architecture sends "Admin/Faculty" to one dashboard; SRS lists a separate Faculty dashboard. | Separate, read-oriented Faculty portal. |
 | 6 | Planning says faculty "view assigned timetable"; SRS says "published timetables". | Faculty see only **published** timetables, limited to their own classes. Students see only their own batch's published timetable (approved decision). |
 | 7 | Design documents say "Teacher". | "Faculty" is used everywhere. |
-| 8 | Design state diagram #10 (reschedule requests and notifications) has no requirement ID. | Not built. Only R19 announcements. |
+| 8 | Design state diagram #10 (reschedule requests and notifications) has no requirement ID. | Not built. Only R19 announcements exist. |
 | 9 | Hand sketch shows Captcha and Forgot-password; not in SRS or MoSCoW; reset needs email delivery. | Not built. Provided instead: change own password. |
 | 10 | SRS `SUBJECT` has a single Faculty, which cannot express different teachers per batch. | Added `teaching_assignments` (term, batch, subject, faculty, sessions/week). |
 | 11 | Lab duration unspecified. | Lab sessions use consecutive periods, default 2, configurable per subject (`lab_block_periods`). Approved. |

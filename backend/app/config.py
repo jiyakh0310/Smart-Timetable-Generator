@@ -12,6 +12,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy.engine import URL, make_url
 
+from app.common import db_resilience
+
 # backend/app/config.py -> project root is two levels above `app/`
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
@@ -161,12 +163,20 @@ def _ssl_context() -> ssl.SSLContext | None:
 
 
 def _engine_options(production: bool) -> dict:
-    options = {"pool_pre_ping": True, "pool_recycle": 280}  # managed MySQL closes idle connections; reconnect instead of failing
+    options = {
+        "pool_pre_ping": True,    # a pooled connection the server has closed is replaced instead of failing the request
+        "pool_recycle": 280,      # managed MySQL closes idle connections
+        "hide_parameters": True,  # SQL error text (and so the logs) never contains bound values: emails, password hashes, ...
+    }
     url = _database_url()
     ctx = _ssl_context()
-    if ctx is not None and url.get_backend_name() == "mysql":
-        options["connect_args"] = {"ssl": ctx}
-    elif production and url.get_backend_name() == "mysql" and (url.host or "") not in LOCAL_HOSTS:
+    if url.get_backend_name() == "mysql":
+        tuning = db_resilience.settings()
+        # bounded waits: a hung connect or query must not tie up a web worker indefinitely
+        options["connect_args"] = {"connect_timeout": tuning["connect_timeout"], "read_timeout": tuning["read_timeout"], "write_timeout": tuning["read_timeout"]}
+        if ctx is not None:
+            options["connect_args"]["ssl"] = ctx
+    if ctx is None and production and url.get_backend_name() == "mysql" and (url.host or "") not in LOCAL_HOSTS:
         raise RuntimeError(
             "The database host is remote but no TLS is configured. Set DB_SSL_CA_PEM (recommended: the provider's CA certificate) "
             "or DB_SSL_CA, or DB_SSL_MODE=REQUIRED for an encrypted connection without certificate checks."
@@ -201,5 +211,7 @@ def load_config(env: str | None = None) -> dict:
         "JWT_ACCESS_TOKEN_EXPIRES": timedelta(hours=int(os.getenv("JWT_EXPIRES_HOURS", "8"))),
         "SQLALCHEMY_DATABASE_URI": _database_uri(),
         "SQLALCHEMY_ENGINE_OPTIONS": _engine_options(production=env == "production"),
+        "DB_CONNECT_ATTEMPTS": db_resilience.settings()["attempts"],
+        "DB_CONNECT_RETRY_DELAY": db_resilience.settings()["delay"],
         "CORS_ORIGINS": [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()],
     }

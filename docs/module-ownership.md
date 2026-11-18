@@ -20,7 +20,7 @@ R1, R2, R13, R14, R19
 - Frontend: `frontend/src/features/isha/`
 - Tests: `backend/app/tests/isha/`
 - **M1 delivered:** `/api/v1/auth/login`, `/me`, `/change-password`; backend `@role_required` (in `common/auth.py`); `LoginForm`, `ChangePasswordForm`.
-- **M3A delivered:** **R2 faculty management** and **R13 admin-managed availability** (`isha/faculty_*.py`, `isha/availability_service.py`, `features/isha/FacultyPage.jsx`, `AvailabilityPage.jsx`). Still planned: R14 workload, faculty self-service availability, R19 announcements.
+- **M3A delivered:** **R2 faculty management** and **R13 admin-managed availability** (`isha/faculty_*.py`, `isha/availability_service.py`, `features/isha/FacultyPage.jsx`, `AvailabilityPage.jsx`). R19 announcements are now delivered (`isha/announcement_*.py`, `features/isha/Announcement*.jsx`). Still planned: faculty self-service availability.
 
 ### Member 2 - Diya: Student & Academic Management
 R3, R4, R6, R12, R22
@@ -58,7 +58,7 @@ Modules call each other through documented service functions (`api-contracts.md`
 ## Isha - R14 delivered
 - **Backend:** `isha/workload_service.py` is the single place that measures teaching duration and compares it with `faculty.max_weekly_hours`. The generator (`jiya/generator.py`), the validator (`jiya/validation_service.py`) and the timetable detail all call it; the clash service is unchanged.
 - **Frontend:** `features/jiya/WorkloadTable.jsx`, shown in the generation summary and the timetable detail, plus a pre-generation warning in the Generate dialog.
-- Still planned for Isha: R19 announcements, faculty self-service availability.
+- Still planned for Isha: faculty self-service availability.
 
 ## Jiya - R15 delivered
 - **Backend:** `jiya/edit_service.py` (`PATCH /api/v1/timetables/:id/entries/:entry_id` and `GET .../edit-options`). It reuses `check_session`, `rank_rooms`, `workload_service` and `validation_service.evaluate`; no rule is duplicated.

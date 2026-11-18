@@ -133,7 +133,7 @@ class TestTls:
     def test_no_tls_settings_means_no_tls_for_a_local_database(self, monkeypatch):
         monkeypatch.setenv("DATABASE_URL", "mysql://u:p@127.0.0.1/db")
         assert config._ssl_context() is None
-        assert "connect_args" not in config._engine_options(production=False)
+        assert "ssl" not in config._engine_options(production=False)["connect_args"]
 
 
 class TestEngineOptions:
@@ -152,12 +152,12 @@ class TestEngineOptions:
 
     def test_development_does_not_force_tls(self, monkeypatch):
         monkeypatch.setenv("DATABASE_URL", "mysql://u:p@db.example.com:3306/app")
-        assert "connect_args" not in config._engine_options(production=False)
+        assert "ssl" not in config._engine_options(production=False)["connect_args"]
 
     @pytest.mark.parametrize("host", ["127.0.0.1", "localhost"])
     def test_production_on_the_same_machine_needs_no_tls(self, monkeypatch, host):
         monkeypatch.setenv("DATABASE_URL", f"mysql://u:p@{host}:3306/app")
-        assert "connect_args" not in config._engine_options(production=True)
+        assert "ssl" not in config._engine_options(production=True)["connect_args"]
 
     def test_production_accepts_a_remote_database_with_tls(self, monkeypatch):
         monkeypatch.setenv("DATABASE_URL", AIVEN)      # ssl-mode=REQUIRED is enough to avoid the refusal

@@ -12,6 +12,8 @@ vi.mock('../services/api.js', () => ({ api: { get: (...a) => get(...a), post: vi
 const admin = { full_name: 'Dr. Anita Verma', email: 'a@x.test', role: 'admin' };
 const student = { full_name: 'Aarav Singh', email: 's@x.test', role: 'student', student: null };
 
+// The Faculty / Student dashboards legitimately load the newest published announcements; nothing else may be requested.
+const otherThanTheAnnouncementsCard = () => get.mock.calls.filter((c) => !String(c[0]).startsWith('/announcements/published'));
 const renderAt = (path) => render(<MemoryRouter initialEntries={[path]}><ToastProvider><App /></ToastProvider></MemoryRouter>);
 
 beforeEach(() => {
@@ -48,7 +50,7 @@ describe('read-only published timetable screens (R11 / R12)', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Aarav/);
     auth = { ...auth, user: { full_name: 'Dr. Rakesh Sharma', email: 'f@x.test', role: 'faculty', faculty: null } };
     renderAt('/student/timetable');
-    expect(get).not.toHaveBeenCalled();
+    expect(otherThanTheAnnouncementsCard()).toHaveLength(0);
   });
 });
 
@@ -112,21 +114,47 @@ describe('routing of built vs unbuilt screens', () => {
     expect(within(nav).getByRole('link', { name: /^Faculty$/ })).not.toHaveTextContent('Soon');
   });
 
-  it('built screens no longer say "Soon", but unbuilt neighbours still do', () => {
+  it('built screens no longer say "Soon"', () => {
     renderAt('/admin/time-slots');
     const nav = screen.getByRole('navigation', { name: 'Main' });
     expect(within(nav).getByRole('link', { name: /Time Slots/ })).not.toHaveTextContent('Soon');
     expect(within(nav).getByRole('link', { name: /Subjects/ })).not.toHaveTextContent('Soon');
     expect(within(nav).getByRole('link', { name: /Rooms/ })).not.toHaveTextContent('Soon');
     expect(within(nav).getByRole('link', { name: /Timetables/ })).not.toHaveTextContent('Soon');
-    expect(within(nav).getByRole('link', { name: /Announcements/ })).toHaveTextContent('Soon');
+    expect(within(nav).getByRole('link', { name: /Announcements/ })).not.toHaveTextContent('Soon');
+    expect(within(nav).queryAllByText('Soon')).toHaveLength(0); // every admin screen is built
   });
 
-  it('unbuilt admin screens still show the honest "not available yet" page', () => {
-    renderAt('/admin/announcements');
-    expect(screen.getByRole('heading', { level: 1, name: 'Announcements' })).toBeInTheDocument();
+  it('screens that are still unbuilt (faculty workload) show the honest "not available yet" page', () => {
+    auth = { ...auth, user: { full_name: 'Dr. Rakesh Sharma', email: 'f@x.test', role: 'faculty', faculty: null } };
+    renderAt('/faculty/workload');
+    expect(screen.getByRole('heading', { level: 1, name: 'Workload' })).toBeInTheDocument();
     expect(screen.getByText('Not available yet')).toBeInTheDocument();
-    expect(get).not.toHaveBeenCalled();
+    expect(otherThanTheAnnouncementsCard()).toHaveLength(0);
+  });
+
+  it('/admin/announcements serves the real management screen', async () => {
+    renderAt('/admin/announcements');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Announcements' })).toBeInTheDocument();
+    expect(screen.queryByText('Not available yet')).not.toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith(expect.stringContaining('/announcements?'));
+    expect(screen.getAllByRole('button', { name: /New announcement/ }).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it.each([['faculty', { full_name: 'Dr. Rakesh Sharma', email: 'f@x.test', role: 'faculty', faculty: null }], ['student', student]])('/%s/announcements serves the read-only feed with no management controls', async (role, who) => {
+    auth = { ...auth, user: who };
+    renderAt(`/${role}/announcements`);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Announcements' })).toBeInTheDocument();
+    expect(get).toHaveBeenCalledWith(expect.stringContaining('/announcements/published?'));
+    expect(screen.queryByRole('button', { name: /New announcement|Publish|Delete|Edit/ })).not.toBeInTheDocument();
+    expect(get.mock.calls.every((c) => String(c[0]).startsWith('/announcements/published'))).toBe(true);
+  });
+
+  it('a student or faculty member cannot open the admin announcements screen', () => {
+    auth = { ...auth, user: student };
+    renderAt('/admin/announcements');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Aarav/);
+    expect(get.mock.calls.some((c) => String(c[0]).startsWith('/announcements?'))).toBe(false);
   });
 
   it.each(['/admin/time-slots', '/admin/students', '/admin/batches', '/admin/faculty', '/admin/availability', '/admin/assignments', '/admin/rooms', '/admin/timetables'])('a student cannot open %s (redirected to their own portal, no data requested)', (path) => {
@@ -134,7 +162,7 @@ describe('routing of built vs unbuilt screens', () => {
     renderAt(path);
     expect(screen.queryByRole('heading', { name: /Time slots|Students|Batches|^Faculty|Teaching assignments|Rooms|Timetables/ })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Aarav/);
-    expect(get).not.toHaveBeenCalled();
+    expect(otherThanTheAnnouncementsCard()).toHaveLength(0);
   });
 
   it.each(['/admin/faculty', '/admin/availability', '/admin/students', '/admin/assignments', '/admin/rooms', '/admin/timetables'])('a faculty member cannot open %s (redirected to the faculty portal, no data requested)', (path) => {
@@ -142,6 +170,6 @@ describe('routing of built vs unbuilt screens', () => {
     renderAt(path);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Dr\. Rakesh/);
     expect(screen.queryByRole('heading', { name: /^Faculty/ })).not.toBeInTheDocument();
-    expect(get).not.toHaveBeenCalled();
+    expect(otherThanTheAnnouncementsCard()).toHaveLength(0);
   });
 });

@@ -22,7 +22,7 @@ MySQL 8, accessed through SQLAlchemy; schema is created only by Alembic migratio
 | `timetables` | term_id, name, version, status, validation_passed, generated_by, approved_by, rejection_reason, published_at | unique (term, version) |
 | `timetable_entries` | timetable_id, assignment_id, faculty_id, batch_id, room_id, time_slot_id | **unique (timetable, faculty, slot)**, **(timetable, batch, slot)**, **(timetable, room, slot)** |
 | `unscheduled_items` | timetable_id, assignment_id, session_no, reason_code, reason_text | - |
-| `announcements` | title, message, audience, batch_id, status, created_by, published_at | - |
+| `announcements` | title, message, **category** (general / academic / timetable_change / exam / urgent, default `general`), audience, batch_id, status, created_by, published_at | - |
 | `system_settings` | key, value, description | key is primary key |
 
 ## Relationships (summary)
@@ -54,6 +54,7 @@ MySQL 8, accessed through SQLAlchemy; schema is created only by Alembic migratio
 - `batches.strength` is **stored** (it is the planned class size used for room allocation); student records are a partial list, so it is not computed. It may not be lower than the number of students already in the batch, and a full batch rejects further students, so the stored number never understates reality.
 - `batches` has both `program_id` and `department_id`; the API always derives the department from the program so they cannot disagree.
 - Section and enrollment numbers are normalised to UPPER CASE (MySQL's `utf8mb4_unicode_ci` compares them case-insensitively, SQLite does not). Student emails are lower-cased and must not be shared (the table itself only enforces unique `enrollment_no` and `user_id`).
+- Migration `7c1d9a4e2b60` only **adds** `announcements.category` (NOT NULL, server default `general`, so existing rows stay valid). It checks whether the column exists first, so running it twice is harmless; its downgrade intentionally does nothing so no data can be dropped.
 - A batch referenced by `students`, `teaching_assignments`, `timetable_entries` or `announcements` cannot be deleted; program and semester are locked while it has assignments or timetable entries.
 - The `students` table has no active/inactive flag, so records are removed by deleting them; deleting a student also sets the linked user's `is_active` to false (the user row is kept).
 - **Not changed, for your decision:** there is no way yet to create or link a student's login (`students.user_id`); account management belongs to the user/faculty module (Isha).

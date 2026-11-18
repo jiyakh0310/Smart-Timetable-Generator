@@ -242,3 +242,14 @@ Frontend tests cover: the button group, downloading through the authenticated he
 - JWT is stateless: "Sign out" removes the token in the browser; a stolen token stays valid until it expires (default 8 h).
 - No login rate-limiting or account lockout yet.
 - Token is kept in `localStorage` (acceptable for a college project; a cookie-based session would resist XSS better).
+
+## Milestone 9: Announcements (R19) - results (actually executed)
+
+| Check | Result |
+|---|---|
+| `python -m pytest` | **1175 passed** (81 new in `tests/isha/test_announcements.py`: permissions, create, admin list, published feed, edit/publish/unpublish/delete, regressions) |
+| `npm test` | **510 passed** in 33 files (new: `AnnouncementsPage.test.jsx`, `AnnouncementFeed.test.jsx`; routing, shell and dashboard tests updated) |
+| `npm run build` | succeeded |
+| Additive migration on a scratch SQLite database with pre-existing rows | Column added, old rows kept with `general`, second run is a no-op |
+| Migration on the real MySQL / Aiven database | **Not run by the assistant** |
+| Browser walk-through | **Not done by the assistant - manual testing required** |

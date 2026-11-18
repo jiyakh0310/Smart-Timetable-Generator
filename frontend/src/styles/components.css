@@ -328,3 +328,29 @@ a.stat-card:hover { transform: translateY(-3px); box-shadow: var(--hl), var(--sh
 .avail-wrap { max-width: 100%; }
 .avail-grid.is-one-day tbody th { width: 40%; }
 .avail-grid.is-one-day .avail-cell, .avail-grid.is-one-day .avail-static { min-height: 52px; font-size: var(--text-base); }
+
+/* ---------- announcements (R19) ---------- */
+.announce-wrap { padding: var(--s-4) var(--s-5); }
+.announce-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+.announce-list.is-refreshing { opacity: 0.6; transition: opacity var(--dur) var(--ease); }
+.announce-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); padding: var(--s-4) var(--s-5); min-width: 0;
+  background: linear-gradient(180deg, #ffffff 0%, var(--surface-2) 100%); border: 1px solid var(--border); border-left: 4px solid var(--border-strong); border-radius: var(--r-lg); box-shadow: var(--hl), var(--sh-1);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.announce-card:hover { transform: translateY(-1px); box-shadow: var(--hl), var(--sh-2); }
+.announce-card.is-academic { border-left-color: var(--primary); }
+.announce-card.is-timetable_change { border-left-color: var(--info); }
+.announce-card.is-exam { border-left-color: #c07a00; }
+.announce-card.is-urgent { border-left-color: var(--danger); background: linear-gradient(180deg, #ffffff 0%, var(--danger-bg) 100%); }
+.announce-card-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+.announce-meta { color: var(--text-3); font-size: var(--text-sm); }
+.announce-title { font-size: var(--text-lg); overflow-wrap: anywhere; }
+.announce-excerpt { color: var(--text-2); overflow-wrap: anywhere; }
+.announce-body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); line-height: 1.6; max-height: 55vh; overflow-y: auto; padding: var(--s-3) var(--s-4); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); }
+.announce-detail-badges { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.announce-state { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-3); padding: var(--s-4) 0; }
+.announce-snippet { display: block; max-width: 56ch; }
+.announce-mini { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+.announce-mini li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-1) var(--s-3); align-items: center; }
+.announce-mini li small { grid-column: 2; }
+.announce-mini a { overflow-wrap: anywhere; font-weight: 600; }
+@media (max-width: 640px) { .announce-wrap { padding: var(--s-3) var(--s-4); } .announce-card { padding: var(--s-4); } }

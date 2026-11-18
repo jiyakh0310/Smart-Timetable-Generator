@@ -88,7 +88,7 @@ describe('AppShell - desktop admin menu', () => {
     expect(within(nav).getByRole('button', { name: /Academics/ })).toHaveAttribute('aria-expanded', 'false');
     ['Dashboard', 'Rooms & Labs', 'Timetables', 'Announcements'].forEach((n) => expect(within(nav).getByRole('link', { name: new RegExp(n) })).toBeInTheDocument());
     expect(within(nav).getByRole('link', { name: /Dashboard/ })).toHaveAttribute('aria-current', 'page');
-    expect(within(nav).getByRole('link', { name: /Announcements/ })).toHaveTextContent('Soon'); // not built yet
+    expect(within(nav).getByRole('link', { name: /Announcements/ })).not.toHaveTextContent('Soon'); // built (R19)
     expect(within(nav).getByRole('link', { name: /Rooms/ })).not.toHaveTextContent('Soon');       // built
     expect(within(nav).getByRole('link', { name: /^Faculty$/ })).not.toHaveTextContent('Soon');
   });

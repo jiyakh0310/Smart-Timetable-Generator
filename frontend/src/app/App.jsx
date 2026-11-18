@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AppShell from '../components/AppShell.jsx';
 import { AssignmentsPage, BatchesPage, StudentsPage, SubjectsPage, TimeSlotsPage } from '../features/diya/index.js';
-import { AvailabilityPage, FacultyPage } from '../features/isha/index.js';
+import { AnnouncementsPage, AvailabilityPage, FacultyAnnouncementsPage, FacultyPage, StudentAnnouncementsPage } from '../features/isha/index.js';
 import { RoomsPage } from '../features/pragya/index.js';
 import { FacultyTimetablePage, StudentTimetablePage, TimetablesPage } from '../features/jiya/index.js';
 import { Loading } from '../components/ui';
@@ -25,6 +25,9 @@ const SCREENS = {
   'admin:assignments': AssignmentsPage,
   'admin:rooms': RoomsPage,
   'admin:timetables': TimetablesPage,
+  'admin:announcements': AnnouncementsPage,
+  'faculty:announcements': FacultyAnnouncementsPage,
+  'student:announcements': StudentAnnouncementsPage,
   'faculty:timetable': FacultyTimetablePage,
   'student:timetable': StudentTimetablePage,
   'admin:faculty': FacultyPage,

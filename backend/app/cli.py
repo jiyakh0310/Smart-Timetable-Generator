@@ -27,8 +27,21 @@ def register_cli(app):
         from app import config as cfg
         from app.common import db_diagnostics
 
+        import socket
+        import time
+
         url = db.engine.url
         click.echo(f"driver={url.drivername}  host={url.host}  port={url.port}  database={url.database}  user={url.username}")
+        click.echo(f"connect attempts={current_app.config.get('DB_CONNECT_ATTEMPTS', 1)}  retry delay={current_app.config.get('DB_CONNECT_RETRY_DELAY', 0)}s")
+        if url.host and url.host not in cfg.LOCAL_HOSTS:
+            started = time.perf_counter()
+            try:
+                found = socket.getaddrinfo(url.host, url.port or 3306, type=socket.SOCK_STREAM)
+                click.echo(f"DNS: {url.host} resolves to {len({f[4][0] for f in found})} address(es) in {(time.perf_counter() - started) * 1000:.0f} ms")
+            except OSError as exc:
+                reason = db_diagnostics.classify(exc)
+                click.echo(f"DNS: FAILED for {url.host} [{reason}]: {exc}")
+                click.echo(f"What to change: {db_diagnostics.HINTS[reason]}")
         ctx = current_app.config.get("SQLALCHEMY_ENGINE_OPTIONS", {}).get("connect_args", {}).get("ssl")
         if ctx is None:
             click.echo("TLS: off")
